@@ -642,28 +642,79 @@
       transform: translateY(0);
     }
 
-    /* Print Stylesheet: Only print the sheet paper */
+    /* Print Stylesheet: Clean, traceless PDF export without headers/footers */
+    @page {
+      size: auto;
+      margin: 0mm; /* 徹底消除瀏覽器預設頁首頁尾（網址、時間、頁碼、網頁標題） */
+    }
+
     @media print {
-      body {
-        background: #FFFFFF;
-        padding: 0;
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #FFFFFF !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
-      .topbar, .left-col, .action-toolbar, .modal-backdrop, .toast {
+
+      /* 隱藏所有非歌譜介面元件與工具列 */
+      .topbar,
+      .left-col,
+      .action-toolbar,
+      .modal-backdrop,
+      .toast,
+      .trust-strip,
+      header,
+      footer {
         display: none !important;
       }
+
       .container {
-        display: block;
-        margin: 0;
-        padding: 0;
+        display: block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
       }
+
+      .right-col {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      /* 歌譜白紙本體：保留如同正式 A4 樂譜的優雅邊界與純淨版面，完全無工具痕跡 */
       .sheet-paper {
-        box-shadow: none;
-        border: none;
-        padding: 0;
-        max-width: 100%;
+        box-shadow: none !important;
+        border: none !important;
+        border-radius: 0 !important;
+        padding: 16mm 20mm !important;
+        margin: 0 auto !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        background: #FFFFFF !important;
+        min-height: auto !important;
       }
+
       .doc-chord-line {
         color: #000000 !important;
+      }
+
+      /* 灰底標籤在列印時精確保留 */
+      .doc-meta-key span,
+      .doc-section-tag span {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        background: #D9D9D9 !important;
+      }
+
+      /* 避免和弦行與歌詞行之間被非預期分頁截斷 */
+      .doc-p {
+        break-inside: avoid;
+        page-break-inside: avoid;
       }
     }
   </style>
@@ -1833,9 +1884,29 @@ G - - - | A - - -
       showToast("已複製轉調後歌譜文字！");
     });
 
-    // Print PDF
+    // Print PDF: Clean export without tool branding traces
+    let originalDocTitle = document.title;
+
+    function prepareCleanPrintTitle() {
+      originalDocTitle = document.title;
+      const songBase = (state.fileName || "歌譜").replace(/\.(docx|txt|md)$/i, "").trim();
+      // 匯出 PDF 時檔名預設為乾淨歌名（避免預設為網頁推廣標題）
+      document.title = `${songBase} (${state.dstKey}調)`;
+    }
+
+    function restoreDocTitle() {
+      document.title = originalDocTitle;
+    }
+
+    window.addEventListener("beforeprint", prepareCleanPrintTitle);
+    window.addEventListener("afterprint", restoreDocTitle);
+
     document.getElementById("btnPrintPdf").addEventListener("click", () => {
-      window.print();
+      prepareCleanPrintTitle();
+      setTimeout(() => {
+        window.print();
+        setTimeout(restoreDocTitle, 1000);
+      }, 50);
     });
 
     // Share Guide Modal
