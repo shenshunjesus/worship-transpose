@@ -1,0 +1,1900 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>敬拜歌譜無損轉調工具 · Worship Chord &amp; .docx Transposer</title>
+  <meta name="description" content="100% 瀏覽器本地處理、零伺服器上傳的敬拜歌譜與 .docx 無損轉調工具。支援保留原排版匯出 Word/Google Docs、智慧升降記號、級數譜 (Nashville Number System) 與吉他 Capo 換算。" />
+  <style>
+    :root {
+      --bg-page: #F7F5F0;
+      --bg-surface: #FFFFFF;
+      --bg-subtle: #EFECE6;
+      --bg-paper: #FFFFFF;
+      --text-main: #18181B;
+      --text-secondary: #52525B;
+      --text-muted: #71717A;
+      --border-color: #E4E0D8;
+      --border-strong: #D1CBC0;
+      --accent: #B45309;
+      --accent-hover: #92400E;
+      --accent-soft: #FEF3C7;
+      --accent-border: #F59E0B;
+      --chord-color: #9A3412;
+      --chord-bg: #FFF7ED;
+      --trust-green: #047857;
+      --trust-bg: #ECFDF5;
+      --trust-border: #A7F3D0;
+      --section-shd: #CCCCCC;
+      --shadow-sm: 0 1px 2px rgba(24, 24, 27, 0.05);
+      --shadow-md: 0 4px 12px rgba(24, 24, 27, 0.07);
+      --shadow-paper: 0 10px 30px rgba(24, 24, 27, 0.09), 0 1px 3px rgba(24, 24, 27, 0.06);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --font-sans: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 48px;
+    }
+
+    /* Top Header & Privacy Banner */
+    .topbar {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      padding: 14px 24px;
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .topbar-inner {
+      max-width: 1360px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: var(--radius-md);
+      background: var(--accent);
+      color: #FFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+      box-shadow: inset 0 -2px 0 rgba(0,0,0,0.15);
+    }
+
+    .brand h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text-main);
+    }
+
+    .brand p {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .trust-strip {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .trust-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--trust-bg);
+      color: var(--trust-green);
+      border: 1px solid var(--trust-border);
+      padding: 5px 11px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-surface);
+      color: var(--text-main);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn:hover {
+      background: var(--bg-subtle);
+      border-color: var(--text-secondary);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #FFFFFF;
+      border-color: var(--accent);
+      box-shadow: 0 1px 2px rgba(180, 83, 9, 0.25);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    .btn-subtle {
+      background: var(--bg-subtle);
+      border-color: var(--border-color);
+      color: var(--text-secondary);
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1360px;
+      margin: 20px auto 0;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: 440px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 1024px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .panel-section {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .panel-section:last-child {
+      border-bottom: none;
+    }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-secondary);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* File Dropzone */
+    .dropzone {
+      border: 2px dashed var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      text-align: center;
+      background: #FCFBF9;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      position: relative;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: var(--chord-bg);
+    }
+
+    .dropzone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .dropzone-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 3px;
+    }
+
+    .dropzone-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .loaded-file-pill {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: var(--accent-soft);
+      border: 1px solid var(--accent-border);
+      padding: 7px 11px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      color: #78350F;
+      font-weight: 600;
+    }
+
+    /* Google Docs URL Helper */
+    .gdocs-bar {
+      margin-top: 10px;
+      display: flex;
+      gap: 6px;
+    }
+
+    .input-text {
+      flex: 1;
+      padding: 7px 10px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-family: inherit;
+      color: var(--text-main);
+      background: var(--bg-surface);
+    }
+
+    .input-text:focus {
+      outline: 2px solid var(--accent-border);
+      border-color: var(--accent);
+    }
+
+    /* Key Selector Grid */
+    .key-row-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .key-status-pill {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 2px 9px;
+      border-radius: 999px;
+    }
+
+    .key-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+    }
+
+    .key-btn {
+      padding: 8px 4px;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-surface);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.12s ease;
+      text-align: center;
+      line-height: 1.15;
+    }
+
+    .key-btn small {
+      display: block;
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .key-btn:hover {
+      border-color: var(--accent);
+      background: var(--chord-bg);
+    }
+
+    .key-btn.active {
+      background: var(--accent);
+      color: #FFFFFF;
+      border-color: var(--accent);
+      box-shadow: 0 2px 5px rgba(180, 83, 9, 0.25);
+    }
+
+    .key-btn.active small {
+      color: #FDE68A;
+    }
+
+    .key-btn.is-source:not(.active) {
+      border-color: var(--trust-green);
+      background: var(--trust-bg);
+    }
+
+    .semitone-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    /* Segmented Controls */
+    .seg-group {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .seg-btn {
+      padding: 7px 8px;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-surface);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.12s ease;
+    }
+
+    .seg-btn:hover {
+      color: var(--text-main);
+      background: var(--bg-subtle);
+    }
+
+    .seg-btn.active {
+      background: var(--text-main);
+      color: #FFFFFF;
+      border-color: var(--text-main);
+    }
+
+    /* Capo Helper List */
+    .capo-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .capo-chip {
+      font-size: 12px;
+      padding: 5px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-strong);
+      background: #FCFBF9;
+      color: var(--text-main);
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.12s ease;
+    }
+
+    .capo-chip:hover {
+      border-color: var(--accent);
+      background: var(--chord-bg);
+    }
+
+    .capo-chip.active {
+      background: var(--trust-green);
+      color: #FFFFFF;
+      border-color: var(--trust-green);
+    }
+
+    /* Editor Textarea */
+    .raw-editor {
+      width: 100%;
+      min-height: 210px;
+      padding: 10px 12px;
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: var(--text-main);
+      background: #FCFBF9;
+      resize: vertical;
+    }
+
+    .raw-editor:focus {
+      outline: 2px solid var(--accent-border);
+      background: #FFFFFF;
+    }
+
+    /* Right Column: Live Sheet Preview & Export Toolbar */
+    .preview-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .action-toolbar {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 12px 18px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .toolbar-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Faithful A4 Document Paper Preview */
+    .sheet-paper {
+      background: var(--bg-paper);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-paper);
+      padding: 44px 56px;
+      min-height: 760px;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    @media (max-width: 640px) {
+      .sheet-paper {
+        padding: 24px 20px;
+      }
+    }
+
+    /* Paragraph Styles Matching Original .docx */
+    .doc-p {
+      margin-bottom: 4px;
+      word-break: break-word;
+    }
+
+    .doc-title-cn {
+      text-align: right;
+      font-size: 20px;
+      font-weight: 700;
+      color: #111111;
+      line-height: 1.35;
+    }
+
+    .doc-title-en {
+      text-align: right;
+      font-size: 18px;
+      font-weight: 500;
+      color: #222222;
+      line-height: 1.35;
+    }
+
+    .doc-meta-key {
+      text-align: right;
+      font-size: 14px;
+      color: #131313;
+      margin-bottom: 12px;
+    }
+
+    .doc-meta-key span {
+      background: var(--section-shd);
+      padding: 1px 6px;
+      border-radius: 2px;
+    }
+
+    .doc-section-tag {
+      margin-top: 14px;
+      margin-bottom: 4px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #111111;
+    }
+
+    .doc-section-tag span {
+      background: var(--section-shd);
+      padding: 1px 6px;
+      display: inline-block;
+    }
+
+    .doc-chord-line {
+      font-family: "Roboto", var(--font-sans);
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--chord-color);
+      letter-spacing: 0.01em;
+      white-space: pre-wrap;
+      line-height: 1.45;
+      margin-top: 4px;
+    }
+
+    .doc-lyric-line {
+      font-size: 22px;
+      font-weight: 500;
+      color: #111111;
+      white-space: pre-wrap;
+      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+
+    .chord-badge-inline {
+      color: var(--chord-color);
+      font-weight: 700;
+      padding: 0 2px;
+    }
+
+    /* Modal / Guide Drawer */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(24, 24, 27, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      max-width: 680px;
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 24px 28px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+      border: 1px solid var(--border-color);
+    }
+
+    .modal-card h2 {
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+
+    .guide-step {
+      background: #FCFBF9;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+
+    .guide-step h3 {
+      font-size: 14px;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+
+    .guide-step p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #18181B;
+      color: #FFFFFF;
+      padding: 10px 16px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      box-shadow: var(--shadow-md);
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 200;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Print Stylesheet: Only print the sheet paper */
+    @media print {
+      body {
+        background: #FFFFFF;
+        padding: 0;
+      }
+      .topbar, .left-col, .action-toolbar, .modal-backdrop, .toast {
+        display: none !important;
+      }
+      .container {
+        display: block;
+        margin: 0;
+        padding: 0;
+      }
+      .sheet-paper {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        max-width: 100%;
+      }
+      .doc-chord-line {
+        color: #000000 !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-icon">♯♭</div>
+        <div>
+          <h1>敬拜歌譜無損轉調工具</h1>
+          <p>支援 Google Docs / Word (.docx) 原排版無損轉調 · 級數譜 · 吉他 Capo 換算</p>
+        </div>
+      </div>
+
+      <div class="trust-strip">
+        <span class="trust-badge" title="所有檔案皆在您的瀏覽器記憶體內直接解析與打包，絕不傳送至任何外部伺服器">
+          🔒 100% 瀏覽器本地處理 · 零上傳 · 離線可用
+        </span>
+        <button type="button" class="btn btn-subtle" id="btnOpenShareGuide">
+          💡 如何分享給最多人放心使用？
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="container">
+    <!-- Left Column: Controls -->
+    <aside class="panel left-col">
+
+      <!-- 1. File Upload / Sample / Google Docs Link -->
+      <div class="panel-section">
+        <div class="section-title">
+          <span>1. 載入歌譜檔案 (.docx / 純文字)</span>
+          <button type="button" class="btn btn-subtle" id="btnReloadSample" style="padding: 3px 8px; font-size: 11px;">
+            載入《坐在寶座上的那位 D》範本
+          </button>
+        </div>
+
+        <div class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" accept=".docx,.txt,.md" />
+          <div class="dropzone-title">📂 拖曳 .docx 或 .txt 歌譜至此，或點擊選取檔案</div>
+          <div class="dropzone-sub">保留 100% 原始字體大小、灰底段落標籤 (Intro/Verse/Chorus) 與排版</div>
+        </div>
+
+        <div class="loaded-file-pill" id="loadedFileBanner">
+          <span id="loadedFileName">📄 目前載入：坐在寶座上的那位 D.docx (內建原檔範本)</span>
+          <span id="loadedFileModeBadge">無損 XML 模式</span>
+        </div>
+
+        <!-- Google Docs Quick Export Helper -->
+        <div style="margin-top: 10px;">
+          <div style="font-size: 11.5px; color: var(--text-secondary); margin-bottom: 4px;">
+            🔗 有 Google Docs 歌譜網址？貼上連結免授權一鍵取得 <code style="font-family: var(--font-mono);">.docx</code>：
+          </div>
+          <div class="gdocs-bar">
+            <input type="text" id="gdocsUrlInput" class="input-text" placeholder="貼上 https://docs.google.com/document/d/... 連結" />
+            <button type="button" class="btn" id="btnGdocsDownload" style="padding: 6px 10px; font-size: 12px;">
+              下載原檔 .docx
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. Original Key & Target Key -->
+      <div class="panel-section">
+        <div class="key-row-header">
+          <span class="section-title" style="margin-bottom: 0;">2. 原調 (Original Key)</span>
+          <span style="font-size: 12px; color: var(--text-secondary);">自動偵測或手動指定</span>
+        </div>
+        <div class="key-grid" id="srcKeyGrid"></div>
+
+        <div class="key-row-header" style="margin-top: 16px;">
+          <span class="section-title" style="margin-bottom: 0;">3. 目標調性 (Target Key)</span>
+          <span class="key-status-pill" id="transposeSummaryBadge">D → D (原調 0 半音)</span>
+        </div>
+        <div class="key-grid" id="dstKeyGrid"></div>
+
+        <div class="semitone-controls">
+          <button type="button" class="btn" id="btnSemiDown" style="flex: 1;">🔉 降半音 (-1)</button>
+          <button type="button" class="btn" id="btnSemiReset" style="padding: 8px 12px;">重置原調</button>
+          <button type="button" class="btn" id="btnSemiUp" style="flex: 1;">🔊 升半音 (+1)</button>
+        </div>
+      </div>
+
+      <!-- 3. Output Mode & Enharmonic Spelling -->
+      <div class="panel-section">
+        <div class="section-title">
+          <span>4. 譜面顯示模式與升降記號</span>
+        </div>
+        <div class="seg-group" id="modeGroup" style="margin-bottom: 10px;">
+          <button type="button" class="seg-btn active" data-mode="chord">標準和弦譜</button>
+          <button type="button" class="seg-btn" data-mode="number">級數譜 (1-7)</button>
+          <button type="button" class="seg-btn" data-mode="dual">和弦 + 級數</button>
+        </div>
+
+        <div class="seg-group" id="accidentalGroup">
+          <button type="button" class="seg-btn active" data-acc="auto">依調性自動 (♯/♭)</button>
+          <button type="button" class="seg-btn" data-acc="sharp">強制升記號 (♯)</button>
+          <button type="button" class="seg-btn" data-acc="flat">強制降記號 (♭)</button>
+        </div>
+      </div>
+
+      <!-- 4. Guitar Capo Helper -->
+      <div class="panel-section">
+        <div class="section-title">
+          <span>5. 吉他手 Capo 移調夾建議</span>
+          <span id="capoActiveHint" style="font-size: 11px; color: var(--trust-green); font-weight: 600;">點擊可預覽指法調性</span>
+        </div>
+        <div class="capo-list" id="capoList"></div>
+      </div>
+
+      <!-- 5. Direct Text Editor -->
+      <div class="panel-section">
+        <div class="section-title">
+          <span>6. 歌詞與和弦文字編輯 (可隨時直接修改或貼上)</span>
+          <span style="font-size: 11px; color: var(--text-muted);">支援小節線 ｜ 或空白對齊或 [G]</span>
+        </div>
+        <textarea id="rawTextEditor" class="raw-editor" spellcheck="false"></textarea>
+      </div>
+
+    </aside>
+
+    <!-- Right Column: Export Actions + Faithful Sheet Preview -->
+    <section class="preview-col">
+      <div class="action-toolbar">
+        <div class="toolbar-group">
+          <button type="button" class="btn btn-primary" id="btnDownloadDocx">
+            ⬇ 下載原排版 .docx (<span id="btnDownloadKeyLabel">坐在寶座上的那位 D.docx</span>)
+          </button>
+          <button type="button" class="btn" id="btnBatchExport">
+            📦 批次匯出常用調 (.docx)
+          </button>
+        </div>
+        <div class="toolbar-group">
+          <button type="button" class="btn" id="btnCopyText">
+            📋 複製純文字譜
+          </button>
+          <button type="button" class="btn" id="btnPrintPdf">
+            🖨️ 列印 / 存成 PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Sheet Paper -->
+      <article class="sheet-paper" id="sheetPaper" aria-label="轉調後歌譜預覽"></article>
+    </section>
+  </main>
+
+  <!-- Share & Trust Guide Modal -->
+  <div class="modal-backdrop" id="shareModal">
+    <div class="modal-card">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <h2>💡 如何讓最多人使用、且大家都能 100% 放心丟檔案？</h2>
+        <button type="button" class="btn" id="btnCloseShareGuide" style="padding: 4px 10px;">✕ 關閉</button>
+      </div>
+      <p style="font-size: 13.5px; color: var(--text-secondary); margin-bottom: 14px;">
+        許多團員不敢用網路上的轉檔網站，是因為擔心「檔案被上傳到不明伺服器」或「被要求授權存取整個 Google Drive」。本工具採用<strong>純前端無伺服器架構 (100% Client-Side Zero-Upload)</strong>，從根本解決信任問題：
+      </p>
+
+      <div class="guide-step">
+        <h3>✅ 為什麼大家可以放心丟檔案上去？</h3>
+        <p>
+          1. <strong>零伺服器上傳</strong>：解析 <code style="font-family: var(--font-mono);">.docx</code> 與替換和弦全部在使用者自己的瀏覽器記憶體內完成，連網路線拔掉都能正常轉調與下載。<br/>
+          2. <strong>免登入、免授權 OAuth</strong>：完全不需要要求使用者開放 Google Drive 權限。<br/>
+          3. <strong>100% 保留原始排版</strong>：直接修改 <code style="font-family: var(--font-mono);">word/document.xml</code> 內的文字節點，原檔的微軟正黑體/Roboto 字型、字級大小、灰底段落標籤 (<code style="font-family: var(--font-mono);">#cccccc</code>) 毫髮無傷。
+        </p>
+      </div>
+
+      <div class="guide-step">
+        <h3>🚀 散播方式一：免費公開網址（推薦！全教會手機/電腦點開即用）</h3>
+        <p>
+          本工具只需單一 <code style="font-family: var(--font-mono);">index.html</code> 靜態檔案，無須後端主機費用：<br/>
+          • <strong>Cloudflare Pages / Netlify Drop</strong>：打開 <code style="font-family: var(--font-mono);">app.netlify.com/drop</code> 或 Cloudflare Pages，把資料夾拖進去，30 秒就能獲得永久免費的 <code style="font-family: var(--font-mono);">https://...</code> 網址！<br/>
+          • <strong>GitHub Pages</strong>：放到公開的 GitHub Repo，所有人都能檢視原始碼，公開透明更有公信力。
+        </p>
+      </div>
+
+      <div class="guide-step">
+        <h3>📎 散播方式二：單一 HTML 檔案直接傳 Line / 放教會雲端硬碟</h3>
+        <p>
+          直接把這個 <code style="font-family: var(--font-mono);">.html</code> 檔案傳到敬拜團 Line 群組或放進教會共用 Google Drive。團員下載到電腦後連點兩下打開瀏覽器即可離線使用，完全零門檻！
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Batch Export Modal -->
+  <div class="modal-backdrop" id="batchModal">
+    <div class="modal-card">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+        <h2>📦 批次匯出多個調性的 .docx 檔案</h2>
+        <button type="button" class="btn" id="btnCloseBatchModal" style="padding: 4px 10px;">✕ 關閉</button>
+      </div>
+      <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">
+        勾選您想要一次產出的調性（適合建立教會雲端題庫，一次備齊常用調與級數譜）：
+      </p>
+      <div class="key-grid" id="batchKeyCheckboxes" style="margin-bottom: 16px;"></div>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button type="button" class="btn" id="btnSelectWorshipCommon">勾選敬拜團常用調 (C, D, Eb, E, F, G, A, Bb + 級數)</button>
+        <button type="button" class="btn btn-primary" id="btnRunBatchDownload">立即下載勾選的 .docx</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">已複製到剪貼簿！</div>
+
+  <script>
+    // =========================================================================
+    // 1. Embedded Slim .docx Binary of《坐在寶座上的那位 D.docx》 (7.4 KB)
+    // =========================================================================
+    const SAMPLE_DOCX_BASE64 =
+      "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";
+
+    const SAMPLE_TEXT = `坐在寶座上的那位 
+To The One Who Is Seated On The Throne
+Upper Room/活水/D
+Intro
+G - Bm - ｜D  - - - ｜G - Bm -  ｜A  - - -
+Verse1
+D - - - ｜- - - - | Bm - - - | - - - -
+我想認識祢 每時刻 多而又多
+A - - - | - - - - | G - - - | - - - -
+站立祢同在中 愛慕祢
+Bm - - - | - - - - | A/D - - - | - - - -
+彰顯祢榮耀 我們渴望 更多有祢
+G - - - | - - - - | A - - - | - - - -
+我們切慕祢同在 主
+Chorus
+D - - - ｜- - - - 
+歸給坐在寶座上那位
+Bm - - - | - - - -
+歸給掌權者永遠直到永遠
+Em - - - | D/F# - - -
+一切的榮耀 一切的尊貴和讚美
+G - - - | A - - -
+一切的榮耀 一切的尊貴和讚美
+Tag
+Em - - - | D/F# - - -
+一切的榮耀 一切的尊貴和讚美
+G - - - | A - - -
+一切的榮耀 一切的尊貴和讚美
+Bridge
+Em - - - | D/F# - - -
+聖潔 聖潔 聖潔 聖潔
+G - - - | A - - -
+我主是聖潔`;
+
+    // =========================================================================
+    // 2. Music Theory & Chord Transposition Engine
+    // =========================================================================
+    const KEYS_META = [
+      { key: "C",  sub: "Am",  semi: 0 },
+      { key: "Db", sub: "C#",  semi: 1 },
+      { key: "D",  sub: "Bm",  semi: 2 },
+      { key: "Eb", sub: "Cm",  semi: 3 },
+      { key: "E",  sub: "C#m", semi: 4 },
+      { key: "F",  sub: "Dm",  semi: 5 },
+      { key: "F#", sub: "Gb",  semi: 6 },
+      { key: "G",  sub: "Em",  semi: 7 },
+      { key: "Ab", sub: "Fm",  semi: 8 },
+      { key: "A",  sub: "F#m", semi: 9 },
+      { key: "Bb", sub: "Gm",  semi: 10 },
+      { key: "B",  sub: "G#m", semi: 11 }
+    ];
+
+    const NOTES_SHARP = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const NOTES_FLAT  = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"];
+    const SCALE_DEGREES_FLAT  = ["1", "b2", "2", "b3", "3", "4", "b5", "5", "b6", "6", "b7", "7"];
+    const SCALE_DEGREES_SHARP = ["1", "#1", "2", "#2", "3", "4", "#4", "5", "#5", "6", "b7", "7"];
+
+    const NOTE_TO_SEMI = {
+      "C": 0, "B#": 0,
+      "C#": 1, "Db": 1, "C♯": 1, "D♭": 1,
+      "D": 2,
+      "D#": 3, "Eb": 3, "D♯": 3, "E♭": 3,
+      "E": 4, "Fb": 4,
+      "F": 5, "E#": 5,
+      "F#": 6, "Gb": 6, "F♯": 6, "G♭": 6,
+      "G": 7,
+      "G#": 8, "Ab": 8, "G♯": 8, "A♭": 8,
+      "A": 9,
+      "A#": 10, "Bb": 10, "A♯": 10, "B♭": 10,
+      "B": 11, "Cb": 11
+    };
+
+    const FLAT_KEYS = new Set(["F", "Bb", "Eb", "Ab", "Db", "Gb", "Dm", "Gm", "Cm", "Fm", "Bbm", "Ebm"]);
+
+    const SECTION_HEADERS = new Set([
+      "intro", "verse", "verse1", "verse2", "verse3", "verse4",
+      "pre-chorus", "prechorus", "chorus", "chorus1", "chorus2",
+      "bridge", "bridge1", "bridge2", "tag", "outro", "interlude",
+      "ending", "solo", "instrumental", "vamp", "turnaround"
+    ]);
+
+    const CHORD_TOKEN_REGEX = /(?<![A-Za-z0-9])([A-G][#b♯♭]?)((?:maj|min|m|M|dim|aug|sus|add|no|[0-9]|[\+\^\(\)])*)(?:\/([A-G][#b♯♭]?))?(?![A-Za-z0-9])/g;
+    const SINGLE_CHORD_REGEX = /^([A-G][#b♯♭]?)((?:maj|min|m|M|dim|aug|sus|add|no|[0-9]|[\+\^\(\)])*)(?:\/([A-G][#b♯♭]?))?$/;
+    const INLINE_BRACKET_REGEX = /\[([A-G][#b♯♭]?)((?:maj|min|m|M|dim|aug|sus|add|no|[0-9]|[\+\^\(\)])*)(?:\/([A-G][#b♯♭]?))?\]/g;
+
+    function isSectionHeader(line) {
+      const s = line.trim().toLowerCase().replace(/:$/, "");
+      if (SECTION_HEADERS.has(s)) return true;
+      return /^(intro|verse|chorus|bridge|tag|outro|interlude|pre-?chorus)\s*\d*$/i.test(s);
+    }
+
+    function isChordLine(line) {
+      const stripped = line.trim();
+      if (!stripped || isSectionHeader(stripped)) return false;
+      const chineseCount = (stripped.match(/[\u4e00-\u9fff]/g) || []).length;
+      const tokens = stripped.split(/[\s｜|\-–—/、,，\(\)\[\]]+/).filter(Boolean);
+      if (tokens.length === 0) return false;
+
+      let chordMatches = 0;
+      for (const tok of tokens) {
+        if (SINGLE_CHORD_REGEX.test(tok)) chordMatches++;
+      }
+      const hasGrid = stripped.includes("｜") || stripped.includes("|") || stripped.includes("- -");
+      if (hasGrid && chordMatches >= 1) return true;
+      if (chineseCount > 0 && !hasGrid) return false;
+      if (tokens.length <= 16 && (chordMatches / tokens.length) >= 0.6) {
+        const englishWords = tokens.filter(t => t.length > 1 && /^[A-Za-z]+$/.test(t) && !/^[A-G](m|maj|min|dim|aug|sus|add)$/.test(t));
+        if (englishWords.length >= 2) return false;
+        return true;
+      }
+      return false;
+    }
+
+    function detectSourceKey(lines) {
+      for (const line of lines.slice(0, 8)) {
+        const m = line.trim().match(/(?:\/|Key\s*[:：]\s*|調性\s*[:：]\s*)([A-G][#b♯♭]?m?)\s*$/i);
+        if (m) {
+          const k = m[1];
+          const root = k[0].toUpperCase() + k.slice(1).replace("m", "");
+          if (NOTE_TO_SEMI[root] !== undefined) return root;
+        }
+      }
+      const found = [];
+      for (const line of lines) {
+        if (isChordLine(line)) {
+          let m;
+          CHORD_TOKEN_REGEX.lastIndex = 0;
+          while ((m = CHORD_TOKEN_REGEX.exec(line)) !== null) {
+            found.push(m[1]);
+          }
+        }
+      }
+      if (found.length > 0) return found[found.length - 1];
+      return "D";
+    }
+
+    function shouldUseFlats(targetKey, accPref) {
+      if (accPref === "flat") return true;
+      if (accPref === "sharp") return false;
+      return FLAT_KEYS.has(targetKey);
+    }
+
+    function transposeChordParts(root, quality, bass, srcSemi, dstSemi, useFlats, mode) {
+      const rootSemi = NOTE_TO_SEMI[root];
+      if (rootSemi === undefined) return root + (quality || "") + (bass ? "/" + bass : "");
+
+      const newRootSemi = (rootSemi - srcSemi + dstSemi + 120) % 12;
+      const newRootNote = useFlats ? NOTES_FLAT[newRootSemi] : NOTES_SHARP[newRootSemi];
+      const degDiff = (newRootSemi - dstSemi + 120) % 12;
+      const newRootNum = useFlats ? SCALE_DEGREES_FLAT[degDiff] : SCALE_DEGREES_SHARP[degDiff];
+
+      let newBassNote = "";
+      let newBassNum = "";
+      if (bass) {
+        const bassSemi = NOTE_TO_SEMI[bass];
+        if (bassSemi !== undefined) {
+          const nbSemi = (bassSemi - srcSemi + dstSemi + 120) % 12;
+          newBassNote = useFlats ? NOTES_FLAT[nbSemi] : NOTES_SHARP[nbSemi];
+          const bDiff = (nbSemi - dstSemi + 120) % 12;
+          newBassNum = useFlats ? SCALE_DEGREES_FLAT[bDiff] : SCALE_DEGREES_SHARP[bDiff];
+        } else {
+          newBassNote = bass;
+          newBassNum = bass;
+        }
+      }
+
+      const chordStr = newRootNote + (quality || "") + (newBassNote ? "/" + newBassNote : "");
+      const numStr   = newRootNum + (quality || "") + (newBassNum ? "/" + newBassNum : "");
+
+      if (mode === "number") return numStr;
+      if (mode === "dual") return `${chordStr}(${numStr})`;
+      return chordStr;
+    }
+
+    function transposeSingleLine(line, srcKey, dstKey, accPref, mode, capoInfo = null) {
+      const srcSemi = NOTE_TO_SEMI[srcKey] ?? 2;
+      const effectiveKey = capoInfo ? capoInfo.playKey : dstKey;
+      const dstSemi = NOTE_TO_SEMI[effectiveKey] ?? srcSemi;
+      const useFlats = shouldUseFlats(effectiveKey, accPref);
+
+      // Check metadata line ending with /Key or Key: X
+      const metaMatch = line.match(/(\/|Key\s*[:：]\s*|調性\s*[:：]\s*)([A-G][#b♯♭]?m?)(\s*)$/);
+      if (metaMatch && !isChordLine(line)) {
+        const idx = metaMatch.index + metaMatch[1].length;
+        let label = dstKey;
+        if (mode === "number") label = `${dstKey} (級數)`;
+        else if (capoInfo && capoInfo.capo > 0) label = `${dstKey} (Capo ${capoInfo.capo} Play ${capoInfo.playKey})`;
+        return line.slice(0, idx) + label + metaMatch[3];
+      }
+
+      // Check inline bracket chords [G]
+      INLINE_BRACKET_REGEX.lastIndex = 0;
+      if (INLINE_BRACKET_REGEX.test(line)) {
+        INLINE_BRACKET_REGEX.lastIndex = 0;
+        return line.replace(INLINE_BRACKET_REGEX, (_, r, q, b) => {
+          return "[" + transposeChordParts(r, q || "", b, srcSemi, dstSemi, useFlats, mode) + "]";
+        });
+      }
+
+      if (!isChordLine(line)) return line;
+
+      const hasGrid = line.includes("｜") || line.includes("|") || line.includes("- -");
+      CHORD_TOKEN_REGEX.lastIndex = 0;
+      if (hasGrid) {
+        return line.replace(CHORD_TOKEN_REGEX, (_, r, q, b) =>
+          transposeChordParts(r, q || "", b, srcSemi, dstSemi, useFlats, mode)
+        );
+      }
+
+      // Preserve column alignment for free-spaced chord lines
+      const matches = [...line.matchAll(CHORD_TOKEN_REGEX)];
+      if (matches.length <= 1) {
+        return line.replace(CHORD_TOKEN_REGEX, (_, r, q, b) =>
+          transposeChordParts(r, q || "", b, srcSemi, dstSemi, useFlats, mode)
+        );
+      }
+
+      let out = "";
+      let cursor = 0;
+      let debt = 0;
+      for (const m of matches) {
+        let gap = line.slice(cursor, m.index);
+        if (debt > 0 && gap.startsWith(" ")) {
+          const spacesAvail = gap.length - gap.trimStart().length;
+          const consume = Math.min(debt, Math.max(0, spacesAvail - 1));
+          gap = gap.slice(consume);
+          debt -= consume;
+        } else if (debt < 0) {
+          gap = " ".repeat(-debt) + gap;
+          debt = 0;
+        }
+        out += gap;
+        const oldTok = m[0];
+        const newTok = transposeChordParts(m[1], m[2] || "", m[3], srcSemi, dstSemi, useFlats, mode);
+        out += newTok;
+        debt += newTok.length - oldTok.length;
+        cursor = m.index + oldTok.length;
+      }
+      out += line.slice(cursor);
+      return out;
+    }
+
+    function getCapoSuggestions(targetKey) {
+      const targetSemi = NOTE_TO_SEMI[targetKey] ?? 0;
+      const guitarKeys = [
+        { playKey: "C", semi: 0 },
+        { playKey: "G", semi: 7 },
+        { playKey: "D", semi: 2 },
+        { playKey: "A", semi: 9 },
+        { playKey: "E", semi: 4 },
+        { playKey: "F", semi: 5 }
+      ];
+      const list = [];
+      for (const gk of guitarKeys) {
+        const capo = (targetSemi - gk.semi + 12) % 12;
+        if (capo <= 8) {
+          list.push({
+            capo,
+            playKey: gk.playKey,
+            label: capo === 0 ? `不夾 Capo (直接彈 ${gk.playKey})` : `Capo ${capo} (彈 ${gk.playKey} 指法)`
+          });
+        }
+      }
+      list.sort((a, b) => {
+        if (a.capo === 0) return -1;
+        if (b.capo === 0) return 1;
+        const aEasy = ["C", "G", "D"].includes(a.playKey) && a.capo <= 5 ? 0 : 1;
+        const bEasy = ["C", "G", "D"].includes(b.playKey) && b.capo <= 5 ? 0 : 1;
+        return aEasy - bEasy || a.capo - b.capo;
+      });
+      return list;
+    }
+
+    // =========================================================================
+    // 3. Pure-JS Zero-Dependency .docx ZIP Reader & Lossless XML Writer
+    // =========================================================================
+    const CRC_TABLE = new Uint32Array(256);
+    for (let i = 0; i < 256; i++) {
+      let c = i;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      CRC_TABLE[i] = c >>> 0;
+    }
+
+    function crc32(u8) {
+      let crc = 0xFFFFFFFF;
+      for (let i = 0; i < u8.length; i++) {
+        crc = CRC_TABLE[(crc ^ u8[i]) & 0xFF] ^ (crc >>> 8);
+      }
+      return (crc ^ 0xFFFFFFFF) >>> 0;
+    }
+
+    function base64ToUint8Array(b64) {
+      const bin = atob(b64);
+      const u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      return u8;
+    }
+
+    async function inflateRaw(u8) {
+      const ds = new DecompressionStream("deflate-raw");
+      const writer = ds.writable.getWriter();
+      writer.write(u8);
+      writer.close();
+      const chunks = [];
+      const reader = ds.readable.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+      const total = chunks.reduce((a, b) => a + b.length, 0);
+      const out = new Uint8Array(total);
+      let off = 0;
+      for (const c of chunks) { out.set(c, off); off += c.length; }
+      return out;
+    }
+
+    async function deflateRaw(u8) {
+      if (typeof CompressionStream === "undefined") {
+        return { data: u8, method: 0 };
+      }
+      const cs = new CompressionStream("deflate-raw");
+      const writer = cs.writable.getWriter();
+      writer.write(u8);
+      writer.close();
+      const chunks = [];
+      const reader = cs.readable.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+      const total = chunks.reduce((a, b) => a + b.length, 0);
+      const out = new Uint8Array(total);
+      let off = 0;
+      for (const c of chunks) { out.set(c, off); off += c.length; }
+      return { data: out, method: 8 };
+    }
+
+    function parseZipEntries(buf) {
+      const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+      let eocdPos = -1;
+      for (let i = buf.length - 22; i >= Math.max(0, buf.length - 65557); i--) {
+        if (dv.getUint32(i, true) === 0x06054b50) { eocdPos = i; break; }
+      }
+      if (eocdPos < 0) throw new Error("無法識別的 .docx (ZIP EOCD 標記不存在)");
+      const totalEntries = dv.getUint16(eocdPos + 10, true);
+      let cdPos = dv.getUint32(eocdPos + 16, true);
+      const dec = new TextDecoder("utf-8");
+      const entries = [];
+      for (let i = 0; i < totalEntries; i++) {
+        if (dv.getUint32(cdPos, true) !== 0x02014b50) throw new Error("無效的 ZIP 目錄結構");
+        const verMade = dv.getUint16(cdPos + 4, true);
+        const verNeed = dv.getUint16(cdPos + 6, true);
+        const flags   = dv.getUint16(cdPos + 8, true);
+        const method  = dv.getUint16(cdPos + 10, true);
+        const dosTime = dv.getUint16(cdPos + 12, true);
+        const dosDate = dv.getUint16(cdPos + 14, true);
+        const crc     = dv.getUint32(cdPos + 16, true);
+        const compSize   = dv.getUint32(cdPos + 20, true);
+        const uncompSize = dv.getUint32(cdPos + 24, true);
+        const nameLen    = dv.getUint16(cdPos + 28, true);
+        const extraLen   = dv.getUint16(cdPos + 30, true);
+        const commentLen = dv.getUint16(cdPos + 32, true);
+        const lhoff      = dv.getUint32(cdPos + 42, true);
+        const nameBytes  = buf.subarray(cdPos + 46, cdPos + 46 + nameLen);
+        const name       = dec.decode(nameBytes);
+        const lNameLen   = dv.getUint16(lhoff + 26, true);
+        const lExtraLen  = dv.getUint16(lhoff + 28, true);
+        const dataStart  = lhoff + 30 + lNameLen + lExtraLen;
+        const rawCompData = buf.subarray(dataStart, dataStart + compSize);
+        entries.push({
+          name, nameBytes: new Uint8Array(nameBytes),
+          verMade, verNeed, flags, method, dosTime, dosDate,
+          crc, compSize, uncompSize,
+          rawCompData: new Uint8Array(rawCompData)
+        });
+        cdPos += 46 + nameLen + extraLen + commentLen;
+      }
+      return entries;
+    }
+
+    async function extractDocumentXmlFromDocx(docxUint8) {
+      const entries = parseZipEntries(docxUint8);
+      const docEntry = entries.find(e => e.name === "word/document.xml");
+      if (!docEntry) throw new Error("此 .docx 檔案不包含 word/document.xml");
+      const xmlBytes = docEntry.method === 8 ? await inflateRaw(docEntry.rawCompData) : docEntry.rawCompData;
+      return new TextDecoder("utf-8").decode(xmlBytes);
+    }
+
+    async function buildDocxWithUpdatedXml(baseDocxUint8, newXmlString) {
+      const entries = parseZipEntries(baseDocxUint8);
+      const newXmlBytes = new TextEncoder().encode(newXmlString);
+      const compressed = await deflateRaw(newXmlBytes);
+
+      for (const e of entries) {
+        if (e.name === "word/document.xml") {
+          e.uncompSize = newXmlBytes.length;
+          e.crc = crc32(newXmlBytes);
+          e.rawCompData = compressed.data;
+          e.compSize = compressed.data.length;
+          e.method = compressed.method;
+        }
+      }
+
+      const localParts = [];
+      const cdParts = [];
+      let offset = 0;
+      for (const e of entries) {
+        const cleanFlags = e.flags & ~0x0008;
+        const lh = new Uint8Array(30 + e.nameBytes.length);
+        const ldv = new DataView(lh.buffer);
+        ldv.setUint32(0, 0x04034b50, true);
+        ldv.setUint16(4, e.verNeed, true);
+        ldv.setUint16(6, cleanFlags, true);
+        ldv.setUint16(8, e.method, true);
+        ldv.setUint16(10, e.dosTime, true);
+        ldv.setUint16(12, e.dosDate, true);
+        ldv.setUint32(14, e.crc, true);
+        ldv.setUint32(18, e.compSize, true);
+        ldv.setUint32(22, e.uncompSize, true);
+        ldv.setUint16(26, e.nameBytes.length, true);
+        ldv.setUint16(28, 0, true);
+        lh.set(e.nameBytes, 30);
+        localParts.push(lh, e.rawCompData);
+
+        const cd = new Uint8Array(46 + e.nameBytes.length);
+        const cdv = new DataView(cd.buffer);
+        cdv.setUint32(0, 0x02014b50, true);
+        cdv.setUint16(4, e.verMade, true);
+        cdv.setUint16(6, e.verNeed, true);
+        cdv.setUint16(8, cleanFlags, true);
+        cdv.setUint16(10, e.method, true);
+        cdv.setUint16(12, e.dosTime, true);
+        cdv.setUint16(14, e.dosDate, true);
+        cdv.setUint32(16, e.crc, true);
+        cdv.setUint32(20, e.compSize, true);
+        cdv.setUint32(24, e.uncompSize, true);
+        cdv.setUint16(28, e.nameBytes.length, true);
+        cdv.setUint16(30, 0, true);
+        cdv.setUint16(32, 0, true);
+        cdv.setUint16(34, 0, true);
+        cdv.setUint16(36, 0, true);
+        cdv.setUint32(38, 0, true);
+        cdv.setUint32(42, offset, true);
+        cd.set(e.nameBytes, 46);
+        cdParts.push(cd);
+
+        offset += lh.length + e.rawCompData.length;
+      }
+
+      const cdSize = cdParts.reduce((a, b) => a + b.length, 0);
+      const eocd = new Uint8Array(22);
+      const edv = new DataView(eocd.buffer);
+      edv.setUint32(0, 0x06054b50, true);
+      edv.setUint16(8, entries.length, true);
+      edv.setUint16(10, entries.length, true);
+      edv.setUint32(12, cdSize, true);
+      edv.setUint32(16, offset, true);
+
+      const all = [...localParts, ...cdParts, eocd];
+      const total = all.reduce((a, b) => a + b.length, 0);
+      const out = new Uint8Array(total);
+      let pos = 0;
+      for (const p of all) { out.set(p, pos); pos += p.length; }
+      return out;
+    }
+
+    function unescapeXml(s) {
+      return s
+        .replace(/&lt;/g, "<")
+        .replace(/&gt;/g, ">")
+        .replace(/&quot;/g, '"')
+        .replace(/&apos;/g, "'")
+        .replace(/&amp;/g, "&");
+    }
+
+    function escapeXml(s) {
+      return s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+    }
+
+    function extractLinesFromDocxXml(xmlStr) {
+      const pRe = /<w:p\b[^>]*>([\s\S]*?)<\/w:p>/g;
+      const tRe = /<w:t(?:\s+[^>]*)?>([\s\S]*?)<\/w:t>/g;
+      const lines = [];
+      let pm;
+      while ((pm = pRe.exec(xmlStr)) !== null) {
+        const pBody = pm[1];
+        let full = "";
+        let tm;
+        tRe.lastIndex = 0;
+        while ((tm = tRe.exec(pBody)) !== null) {
+          full += unescapeXml(tm[1]);
+        }
+        lines.push(full);
+      }
+      // Remove empty trailing lines while keeping internal structure
+      return lines.filter((l, idx) => l.trim() !== "" || idx < lines.length - 1);
+    }
+
+    function transposeDocxXmlString(xmlStr, srcKey, dstKey, accPref, mode, capoInfo) {
+      const pRe = /(<w:p\b[^>]*>)([\s\S]*?)(<\/w:p>)/g;
+      const tRe = /(<w:t(?:\s+[^>]*)?>)([\s\S]*?)(<\/w:t>)/g;
+
+      return xmlStr.replace(pRe, (wholeP, pOpen, pBody, pClose) => {
+        const tMatches = [...pBody.matchAll(tRe)];
+        if (tMatches.length === 0) return wholeP;
+
+        const fullText = tMatches.map(m => unescapeXml(m[2])).join("");
+        if (!fullText.trim()) return wholeP;
+
+        const newFullText = transposeSingleLine(fullText, srcKey, dstKey, accPref, mode, capoInfo);
+        if (newFullText === fullText) return wholeP;
+
+        if (tMatches.length === 1) {
+          const m0 = tMatches[0];
+          const newT = m0[1] + escapeXml(newFullText) + m0[3];
+          return pOpen + pBody.slice(0, m0.index) + newT + pBody.slice(m0.index + m0[0].length) + pClose;
+        }
+
+        // Metadata line (e.g. Run 0: "Upper Room", Run 1: "/活水/D"): update the specific run
+        if (!isChordLine(fullText)) {
+          for (let i = tMatches.length - 1; i >= 0; i--) {
+            const mr = tMatches[i];
+            const runTxt = unescapeXml(mr[2]);
+            const newRunTxt = transposeSingleLine(runTxt, srcKey, dstKey, accPref, mode, capoInfo);
+            if (newRunTxt !== runTxt) {
+              const newT = mr[1] + escapeXml(newRunTxt) + mr[3];
+              return pOpen + pBody.slice(0, mr.index) + newT + pBody.slice(mr.index + mr[0].length) + pClose;
+            }
+          }
+        }
+
+        // Chord line split across multiple <w:t>: write full transposed text to first <w:t>
+        let rebuilt = "";
+        let lastIdx = 0;
+        tMatches.forEach((mr, idx) => {
+          rebuilt += pBody.slice(lastIdx, mr.index);
+          if (idx === 0) {
+            rebuilt += mr[1] + escapeXml(newFullText) + mr[3];
+          } else {
+            rebuilt += mr[1] + mr[3];
+          }
+          lastIdx = mr.index + mr[0].length;
+        });
+        rebuilt += pBody.slice(lastIdx);
+        return pOpen + rebuilt + pClose;
+      });
+    }
+
+    function buildDocxXmlFromTextLines(templateXmlStr, transposedLines) {
+      const bodyStart = templateXmlStr.indexOf("<w:body>");
+      const sectPrIdx = templateXmlStr.lastIndexOf("<w:sectPr");
+      const headerPart = templateXmlStr.slice(0, bodyStart + 8);
+      const footerPart = sectPrIdx >= 0 ? templateXmlStr.slice(sectPrIdx) : "</w:body></w:document>";
+
+      const pXmlList = transposedLines.map((line, idx) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          return `<w:p><w:r><w:t></w:t></w:r></w:p>`;
+        }
+        // Title lines (first 2 lines if not section header or chord line)
+        if (idx <= 1 && !isSectionHeader(trimmed) && !isChordLine(trimmed)) {
+          return `<w:p><w:pPr><w:jc w:val="right"/><w:rPr><w:rFonts w:ascii="Microsoft JhengHei" w:eastAsia="Microsoft JhengHei" w:hAnsi="Microsoft JhengHei"/><w:sz w:val="30"/><w:szCs w:val="30"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Microsoft JhengHei" w:eastAsia="Microsoft JhengHei" w:hAnsi="Microsoft JhengHei"/><w:sz w:val="30"/><w:szCs w:val="30"/></w:rPr><w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r></w:p>`;
+        }
+        // Metadata line (e.g. Upper Room/活水/D)
+        if (idx === 2 && !isSectionHeader(trimmed) && !isChordLine(trimmed)) {
+          return `<w:p><w:pPr><w:jc w:val="right"/><w:rPr><w:rFonts w:ascii="Microsoft JhengHei" w:eastAsia="Microsoft JhengHei" w:hAnsi="Microsoft JhengHei"/><w:shd w:fill="cccccc" w:val="clear"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Microsoft JhengHei" w:eastAsia="Microsoft JhengHei" w:hAnsi="Microsoft JhengHei"/><w:sz w:val="21"/><w:szCs w:val="21"/><w:shd w:fill="cccccc" w:val="clear"/></w:rPr><w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r></w:p>`;
+        }
+        // Section header (Intro, Verse1, Chorus, Tag, Bridge)
+        if (isSectionHeader(trimmed)) {
+          return `<w:p><w:pPr><w:rPr><w:rFonts w:ascii="Microsoft JhengHei" w:eastAsia="Microsoft JhengHei" w:hAnsi="Microsoft JhengHei"/><w:shd w:fill="cccccc" w:val="clear"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Microsoft JhengHei" w:eastAsia="Microsoft JhengHei" w:hAnsi="Microsoft JhengHei"/><w:shd w:fill="cccccc" w:val="clear"/></w:rPr><w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r></w:p>`;
+        }
+        // Chord line (sz=26 -> 13pt)
+        if (isChordLine(trimmed)) {
+          return `<w:p><w:pPr><w:rPr><w:rFonts w:ascii="Microsoft JhengHei" w:eastAsia="Microsoft JhengHei" w:hAnsi="Microsoft JhengHei"/><w:sz w:val="26"/><w:szCs w:val="26"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Microsoft JhengHei" w:eastAsia="Microsoft JhengHei" w:hAnsi="Microsoft JhengHei"/><w:sz w:val="26"/><w:szCs w:val="26"/></w:rPr><w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r></w:p>`;
+        }
+        // Lyric line (sz=34 -> 17pt)
+        return `<w:p><w:pPr><w:rPr><w:rFonts w:ascii="Microsoft JhengHei" w:eastAsia="Microsoft JhengHei" w:hAnsi="Microsoft JhengHei"/><w:sz w:val="34"/><w:szCs w:val="34"/></w:rPr></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Microsoft JhengHei" w:eastAsia="Microsoft JhengHei" w:hAnsi="Microsoft JhengHei"/><w:sz w:val="34"/><w:szCs w:val="34"/></w:rPr><w:t xml:space="preserve">${escapeXml(line)}</w:t></w:r></w:p>`;
+      });
+
+      return headerPart + pXmlList.join("") + footerPart;
+    }
+
+    // =========================================================================
+    // 4. Application State & UI Rendering
+    // =========================================================================
+    const state = {
+      fileName: "坐在寶座上的那位 D.docx",
+      docxBytes: null,
+      docxXmlString: null,
+      textModifiedManually: false,
+      rawText: SAMPLE_TEXT,
+      srcKey: "D",
+      dstKey: "D",
+      mode: "chord",      // 'chord' | 'number' | 'dual'
+      accPref: "auto",    // 'auto' | 'sharp' | 'flat'
+      capoOverride: null  // null or { capo, playKey, label }
+    };
+
+    const elSrcKeyGrid = document.getElementById("srcKeyGrid");
+    const elDstKeyGrid = document.getElementById("dstKeyGrid");
+    const elRawEditor  = document.getElementById("rawTextEditor");
+    const elSheetPaper = document.getElementById("sheetPaper");
+    const elCapoList   = document.getElementById("capoList");
+    const elSummaryBadge = document.getElementById("transposeSummaryBadge");
+    const elDownloadKeyLabel = document.getElementById("btnDownloadKeyLabel");
+    const elLoadedFileName = document.getElementById("loadedFileName");
+    const elLoadedFileMode = document.getElementById("loadedFileModeBadge");
+
+    function showToast(msg) {
+      const t = document.getElementById("toast");
+      t.textContent = msg;
+      t.classList.add("show");
+      setTimeout(() => t.classList.remove("show"), 2400);
+    }
+
+    function getOutputFileName(customTargetKey = null, customMode = null) {
+      const tKey = customTargetKey || state.dstKey;
+      const tMode = customMode || state.mode;
+      const base = state.fileName.replace(/\.(docx|txt|md)$/i, "");
+      let suffix = tKey;
+      if (tMode === "number") suffix = `${tKey}_級數譜`;
+      else if (state.capoOverride && state.capoOverride.capo > 0 && !customTargetKey) {
+        suffix = `${tKey}_Capo${state.capoOverride.capo}(Play_${state.capoOverride.playKey})`;
+      }
+      const replaced = base.replace(/\s+[A-G][#b♯♭]?m?$/i, ` ${suffix}`);
+      const finalBase = replaced !== base ? replaced : `${base} ${suffix}`;
+      return `${finalBase}.docx`;
+    }
+
+    function renderKeyGrids() {
+      elSrcKeyGrid.innerHTML = "";
+      elDstKeyGrid.innerHTML = "";
+
+      for (const km of KEYS_META) {
+        // Source Key Button
+        const sBtn = document.createElement("button");
+        sBtn.type = "button";
+        sBtn.className = "key-btn" + (state.srcKey === km.key ? " active" : "");
+        sBtn.innerHTML = `${km.key}<small>${km.sub}</small>`;
+        sBtn.addEventListener("click", () => {
+          state.srcKey = km.key;
+          renderAll();
+        });
+        elSrcKeyGrid.appendChild(sBtn);
+
+        // Target Key Button
+        const dBtn = document.createElement("button");
+        dBtn.type = "button";
+        dBtn.className = "key-btn" +
+          (state.dstKey === km.key ? " active" : "") +
+          (state.srcKey === km.key ? " is-source" : "");
+        dBtn.innerHTML = `${km.key}<small>${km.sub}</small>`;
+        dBtn.addEventListener("click", () => {
+          state.dstKey = km.key;
+          state.capoOverride = null;
+          renderAll();
+        });
+        elDstKeyGrid.appendChild(dBtn);
+      }
+    }
+
+    function renderCapoSuggestions() {
+      elCapoList.innerHTML = "";
+      const suggestions = getCapoSuggestions(state.dstKey);
+      for (const item of suggestions) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        const isActive = state.capoOverride
+          ? (state.capoOverride.capo === item.capo && state.capoOverride.playKey === item.playKey)
+          : (item.capo === 0);
+        chip.className = "capo-chip" + (isActive ? " active" : "");
+        chip.textContent = item.label;
+        chip.addEventListener("click", () => {
+          if (item.capo === 0) {
+            state.capoOverride = null;
+          } else {
+            state.capoOverride = item;
+          }
+          renderAll();
+        });
+        elCapoList.appendChild(chip);
+      }
+    }
+
+    function getTransposedLines(customTargetKey = null, customMode = null) {
+      const tKey = customTargetKey || state.dstKey;
+      const tMode = customMode || state.mode;
+      const lines = state.rawText.split(/\r?\n/);
+      return lines.map(line =>
+        transposeSingleLine(
+          line,
+          state.srcKey,
+          tKey,
+          state.accPref,
+          tMode,
+          customTargetKey ? null : state.capoOverride
+        )
+      );
+    }
+
+    function renderSheetPreview() {
+      const srcSemi = NOTE_TO_SEMI[state.srcKey] ?? 2;
+      const dstSemi = NOTE_TO_SEMI[state.dstKey] ?? 2;
+      let diff = (dstSemi - srcSemi) % 12;
+      if (diff > 6) diff -= 12;
+      if (diff < -6) diff += 12;
+      const diffLabel = diff === 0 ? "原調 0 半音" : (diff > 0 ? `+${diff} 半音` : `${diff} 半音`);
+      elSummaryBadge.textContent = `${state.srcKey} → ${state.dstKey} (${diffLabel})`;
+      elDownloadKeyLabel.textContent = getOutputFileName();
+
+      const lines = getTransposedLines();
+      elSheetPaper.innerHTML = "";
+
+      lines.forEach((line, idx) => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+          const sp = document.createElement("div");
+          sp.style.height = "8px";
+          elSheetPaper.appendChild(sp);
+          return;
+        }
+
+        const p = document.createElement("div");
+        if (idx === 0 && !isSectionHeader(trimmed) && !isChordLine(trimmed)) {
+          p.className = "doc-p doc-title-cn";
+          p.textContent = line;
+        } else if (idx === 1 && !isSectionHeader(trimmed) && !isChordLine(trimmed) && /^[A-Za-z0-9\s',.\-()]+$/.test(trimmed)) {
+          p.className = "doc-p doc-title-en";
+          p.textContent = line;
+        } else if (idx <= 3 && (trimmed.includes("/") || /Key\s*[:：]/i.test(trimmed)) && !isChordLine(trimmed)) {
+          p.className = "doc-p doc-meta-key";
+          const span = document.createElement("span");
+          span.textContent = line;
+          p.appendChild(span);
+        } else if (isSectionHeader(trimmed)) {
+          p.className = "doc-p doc-section-tag";
+          const span = document.createElement("span");
+          span.textContent = line;
+          p.appendChild(span);
+        } else if (isChordLine(trimmed)) {
+          p.className = "doc-p doc-chord-line";
+          p.textContent = line;
+        } else {
+          p.className = "doc-p doc-lyric-line";
+          p.textContent = line;
+        }
+        elSheetPaper.appendChild(p);
+      });
+    }
+
+    function renderAll() {
+      renderKeyGrids();
+      renderCapoSuggestions();
+      renderSheetPreview();
+    }
+
+    // =========================================================================
+    // 5. Event Listeners & File / Download Handlers
+    // =========================================================================
+    async function loadDefaultSample() {
+      state.fileName = "坐在寶座上的那位 D.docx";
+      state.docxBytes = base64ToUint8Array(SAMPLE_DOCX_BASE64);
+      state.docxXmlString = await extractDocumentXmlFromDocx(state.docxBytes);
+      state.rawText = SAMPLE_TEXT;
+      state.textModifiedManually = false;
+      state.srcKey = "D";
+      state.dstKey = "C"; // Default to showing D -> C transposition immediately!
+      state.capoOverride = null;
+      elRawEditor.value = state.rawText;
+      elLoadedFileName.textContent = `📄 目前載入：${state.fileName}`;
+      elLoadedFileMode.textContent = "無損 .docx XML 模式";
+      renderAll();
+    }
+
+    async function handleFileLoaded(file) {
+      try {
+        state.fileName = file.name;
+        if (file.name.toLowerCase().endsWith(".docx")) {
+          const buf = await file.arrayBuffer();
+          state.docxBytes = new Uint8Array(buf);
+          state.docxXmlString = await extractDocumentXmlFromDocx(state.docxBytes);
+          const extractedLines = extractLinesFromDocxXml(state.docxXmlString);
+          state.rawText = extractedLines.join("\n");
+          state.textModifiedManually = false;
+          elLoadedFileMode.textContent = "無損 .docx XML 模式";
+        } else {
+          const text = await file.text();
+          state.docxBytes = base64ToUint8Array(SAMPLE_DOCX_BASE64);
+          state.docxXmlString = await extractDocumentXmlFromDocx(state.docxBytes);
+          state.rawText = text;
+          state.textModifiedManually = true;
+          elLoadedFileMode.textContent = "智慧 .docx 排版生成模式";
+        }
+        elRawEditor.value = state.rawText;
+        const detected = detectSourceKey(state.rawText.split(/\r?\n/));
+        state.srcKey = detected;
+        state.dstKey = detected;
+        state.capoOverride = null;
+        elLoadedFileName.textContent = `📄 目前載入：${file.name} (偵測原調: ${detected})`;
+        renderAll();
+        showToast(`已成功載入 ${file.name} (原調 ${detected})`);
+      } catch (err) {
+        alert("載入檔案時發生錯誤：" + err.message);
+      }
+    }
+
+    async function triggerDocxDownload(targetKey = null, targetMode = null) {
+      const tKey = targetKey || state.dstKey;
+      const tMode = targetMode || state.mode;
+      let finalXml;
+
+      if (!state.textModifiedManually && state.docxXmlString) {
+        finalXml = transposeDocxXmlString(
+          state.docxXmlString,
+          state.srcKey,
+          tKey,
+          state.accPref,
+          tMode,
+          targetKey ? null : state.capoOverride
+        );
+      } else {
+        const templateXml = state.docxXmlString || await extractDocumentXmlFromDocx(base64ToUint8Array(SAMPLE_DOCX_BASE64));
+        const lines = getTransposedLines(tKey, tMode);
+        finalXml = buildDocxXmlFromTextLines(templateXml, lines);
+      }
+
+      const baseBytes = state.docxBytes || base64ToUint8Array(SAMPLE_DOCX_BASE64);
+      const outDocxBytes = await buildDocxWithUpdatedXml(baseBytes, finalXml);
+      const blob = new Blob([outDocxBytes], {
+        type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = getOutputFileName(tKey, tMode);
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    // Wire up DOM events
+    document.getElementById("fileInput").addEventListener("change", (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleFileLoaded(e.target.files[0]);
+      }
+    });
+
+    const dropzone = document.getElementById("dropzone");
+    dropzone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropzone.classList.add("dragover");
+    });
+    dropzone.addEventListener("dragleave", () => dropzone.classList.remove("dragover"));
+    dropzone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropzone.classList.remove("dragover");
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleFileLoaded(e.dataTransfer.files[0]);
+      }
+    });
+
+    document.getElementById("btnReloadSample").addEventListener("click", () => {
+      loadDefaultSample();
+      showToast("已重新載入《坐在寶座上的那位 D.docx》原檔範本");
+    });
+
+    // Google Docs URL helper
+    document.getElementById("btnGdocsDownload").addEventListener("click", () => {
+      const urlVal = document.getElementById("gdocsUrlInput").value.trim();
+      const m = urlVal.match(/\/d\/([a-zA-Z0-9_-]{15,})/);
+      if (!m) {
+        alert("請貼上有效的 Google Docs 或 Google Drive 連結（包含 /d/檔案ID）");
+        return;
+      }
+      const docId = m[1];
+      const exportUrl = `https://docs.google.com/document/d/${docId}/export?format=docx`;
+      window.open(exportUrl, "_blank", "noopener");
+      showToast("已觸發下載原檔 .docx，下載完成後請直接拖曳至上方框框！");
+    });
+
+    // Semitone steppers
+    document.getElementById("btnSemiDown").addEventListener("click", () => {
+      const curSemi = NOTE_TO_SEMI[state.dstKey] ?? 0;
+      const nextSemi = (curSemi + 11) % 12;
+      state.dstKey = KEYS_META[nextSemi].key;
+      state.capoOverride = null;
+      renderAll();
+    });
+
+    document.getElementById("btnSemiUp").addEventListener("click", () => {
+      const curSemi = NOTE_TO_SEMI[state.dstKey] ?? 0;
+      const nextSemi = (curSemi + 1) % 12;
+      state.dstKey = KEYS_META[nextSemi].key;
+      state.capoOverride = null;
+      renderAll();
+    });
+
+    document.getElementById("btnSemiReset").addEventListener("click", () => {
+      state.dstKey = state.srcKey;
+      state.capoOverride = null;
+      renderAll();
+    });
+
+    // Mode group
+    document.querySelectorAll("#modeGroup .seg-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#modeGroup .seg-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        state.mode = btn.dataset.mode;
+        renderAll();
+      });
+    });
+
+    // Accidental group
+    document.querySelectorAll("#accidentalGroup .seg-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#accidentalGroup .seg-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        state.accPref = btn.dataset.acc;
+        renderAll();
+      });
+    });
+
+    // Raw text editor live update
+    elRawEditor.addEventListener("input", () => {
+      state.rawText = elRawEditor.value;
+      state.textModifiedManually = true;
+      elLoadedFileMode.textContent = "文字即時編輯模式";
+      const detected = detectSourceKey(state.rawText.split(/\r?\n/));
+      state.srcKey = detected;
+      renderAll();
+    });
+
+    // Download .docx
+    document.getElementById("btnDownloadDocx").addEventListener("click", async () => {
+      await triggerDocxDownload();
+      showToast(`已下載 ${getOutputFileName()}`);
+    });
+
+    // Copy text
+    document.getElementById("btnCopyText").addEventListener("click", async () => {
+      const text = getTransposedLines().join("\n");
+      await navigator.clipboard.writeText(text);
+      showToast("已複製轉調後歌譜文字！");
+    });
+
+    // Print PDF
+    document.getElementById("btnPrintPdf").addEventListener("click", () => {
+      window.print();
+    });
+
+    // Share Guide Modal
+    const shareModal = document.getElementById("shareModal");
+    document.getElementById("btnOpenShareGuide").addEventListener("click", () => shareModal.classList.add("open"));
+    document.getElementById("btnCloseShareGuide").addEventListener("click", () => shareModal.classList.remove("open"));
+    shareModal.addEventListener("click", (e) => { if (e.target === shareModal) shareModal.classList.remove("open"); });
+
+    // Batch Export Modal
+    const batchModal = document.getElementById("batchModal");
+    const batchContainer = document.getElementById("batchKeyCheckboxes");
+    const batchOptions = [
+      ...KEYS_META.map(k => ({ id: k.key, label: `${k.key} 調`, key: k.key, mode: "chord" })),
+      { id: "NUMBER", label: "級數譜 (1-7)", key: state.srcKey, mode: "number" }
+    ];
+    const selectedBatch = new Set(["C", "D", "Eb", "E", "F", "G", "A", "Bb", "NUMBER"]);
+
+    function renderBatchOptions() {
+      batchContainer.innerHTML = "";
+      for (const opt of batchOptions) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "key-btn" + (selectedBatch.has(opt.id) ? " active" : "");
+        btn.textContent = opt.label;
+        btn.addEventListener("click", () => {
+          if (selectedBatch.has(opt.id)) selectedBatch.delete(opt.id);
+          else selectedBatch.add(opt.id);
+          renderBatchOptions();
+        });
+        batchContainer.appendChild(btn);
+      }
+    }
+
+    document.getElementById("btnBatchExport").addEventListener("click", () => {
+      renderBatchOptions();
+      batchModal.classList.add("open");
+    });
+    document.getElementById("btnCloseBatchModal").addEventListener("click", () => batchModal.classList.remove("open"));
+    document.getElementById("btnSelectWorshipCommon").addEventListener("click", () => {
+      selectedBatch.clear();
+      ["C", "D", "Eb", "E", "F", "G", "A", "Bb", "NUMBER"].forEach(k => selectedBatch.add(k));
+      renderBatchOptions();
+    });
+    document.getElementById("btnRunBatchDownload").addEventListener("click", async () => {
+      batchModal.classList.remove("open");
+      let count = 0;
+      for (const opt of batchOptions) {
+        if (selectedBatch.has(opt.id)) {
+          const k = opt.id === "NUMBER" ? state.srcKey : opt.key;
+          await triggerDocxDownload(k, opt.mode);
+          count++;
+          await new Promise(r => setTimeout(r, 220));
+        }
+      }
+      showToast(`已批次匯出 ${count} 個 .docx 歌譜檔案！`);
+    });
+
+    // Initialize with《坐在寶座上的那位 D.docx》
+    loadDefaultSample();
+  </script>
+</body>
+</html>
