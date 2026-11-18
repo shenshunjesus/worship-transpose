@@ -322,14 +322,28 @@ function runTransposeInGoogleDocs(params) {
 
     const textEl = para.editAsText();
     for (const ed of edits) {
-      // 先插入新文字再刪除舊文字，可 100% 保留該位置的字體、顏色、字級與灰底樣式
-      if (ed.text.length > 0) {
+      if (ed.text.length > 0 && ed.end > ed.start) {
+        // 讀取原本第一個和弦字元的樣式，並插入在 ed.start + 1 之後再刪除原字元
+        // 這樣當 ed.start === 0 時才不會誤繼承到「上一段」的大字級或灰底樣式！
+        const origAttrs = textEl.getAttributes(ed.start);
+        textEl.insertText(ed.start + 1, ed.text);
+        if (ed.end - ed.start > 1) {
+          textEl.deleteText(ed.start + 1 + ed.text.length, ed.end + ed.text.length - 1);
+        }
+        textEl.deleteText(ed.start, ed.start);
+        textEl.setAttributes(ed.start, ed.start + ed.text.length - 1, origAttrs);
+      } else if (ed.text.length > 0) {
+        // 純補空白 (debt < 0)
+        const curLen = textEl.getText().length;
+        const refIdx = ed.start < curLen ? ed.start : Math.max(0, ed.start - 1);
+        const refAttrs = curLen > 0 ? textEl.getAttributes(refIdx) : null;
         textEl.insertText(ed.start, ed.text);
-      }
-      if (ed.end > ed.start) {
-        const delStart = ed.start + ed.text.length;
-        const delEndInclusive = ed.end + ed.text.length - 1;
-        textEl.deleteText(delStart, delEndInclusive);
+        if (refAttrs) {
+          textEl.setAttributes(ed.start, ed.start + ed.text.length - 1, refAttrs);
+        }
+      } else if (ed.end > ed.start) {
+        // 純刪除多餘空白 (debt > 0)
+        textEl.deleteText(ed.start, ed.end - 1);
       }
     }
     modifiedParagraphs++;

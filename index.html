@@ -2545,13 +2545,27 @@ G - - - | A - - -
                 // Ensure contiguous text run range
                 if (ed.end > ed.start && docEnd - docStart !== ed.end - ed.start) continue;
 
-                if (ed.text.length > 0) {
-                  requests.push({ insertText: { location: { index: docStart }, text: ed.text } });
-                }
-                if (ed.end > ed.start) {
+                if (ed.text.length > 0 && ed.end > ed.start) {
+                  // 插入在 docStart + 1 之後再刪除原字元，確保繼承該和弦本身的字體/背景色而非上一段！
+                  requests.push({ insertText: { location: { index: docStart + 1 }, text: ed.text } });
+                  if (docEnd - docStart > 1) {
+                    requests.push({
+                      deleteContentRange: {
+                        range: { startIndex: docStart + 1 + ed.text.length, endIndex: docEnd + ed.text.length }
+                      }
+                    });
+                  }
                   requests.push({
                     deleteContentRange: {
-                      range: { startIndex: docStart + ed.text.length, endIndex: docEnd + ed.text.length }
+                      range: { startIndex: docStart, endIndex: docStart + 1 }
+                    }
+                  });
+                } else if (ed.text.length > 0) {
+                  requests.push({ insertText: { location: { index: docStart }, text: ed.text } });
+                } else if (ed.end > ed.start) {
+                  requests.push({
+                    deleteContentRange: {
+                      range: { startIndex: docStart, endIndex: docEnd }
                     }
                   });
                 }
