@@ -130,7 +130,13 @@ function transposeChordParts_(root, quality, bass, srcSemi, dstSemi, useFlats, m
 }
 
 function detectKeyFromParagraphs_(texts) {
-  for (const line of texts.slice(0, 8)) {
+  const lines = [];
+  for (const t of texts) {
+    for (const sub of String(t || '').split(/[\r\n\u000b]+/)) {
+      lines.push(sub);
+    }
+  }
+  for (const line of lines.slice(0, 10)) {
     const m = line.trim().match(/(?:\/|Key\s*[:：]\s*|調性\s*[:：]\s*)([A-G][#b♯♭]?m?)\s*$/i);
     if (m) {
       const k = m[1];
@@ -139,7 +145,7 @@ function detectKeyFromParagraphs_(texts) {
     }
   }
   const found = [];
-  for (const line of texts) {
+  for (const line of lines) {
     if (isChordLine_(line)) {
       CHORD_TOKEN_REGEX.lastIndex = 0;
       let m;
@@ -204,6 +210,7 @@ function computeMinimalEditsForLine_(line, srcKey, dstKey, accPref, mode) {
 
     if (debt > 0) {
       const mSpaces = gap.match(/ {2,}/);
+      let mSpacesEnd = -1;
       if (mSpaces) {
         const consume = Math.min(debt, mSpaces[0].length - 1);
         if (consume > 0) {
@@ -214,8 +221,9 @@ function computeMinimalEditsForLine_(line, srcKey, dstKey, accPref, mode) {
           });
           debt -= consume;
         }
+        mSpacesEnd = mSpaces.index + mSpaces[0].length;
       }
-      if (debt > 0) {
+      if (debt > 0 && mSpacesEnd < gap.length) {
         const trail = gap.length - gap.trimEnd().length;
         const consume = Math.min(debt, Math.max(0, trail - 1));
         if (consume > 0) {
@@ -242,6 +250,259 @@ function computeMinimalEditsForLine_(line, srcKey, dstKey, accPref, mode) {
 
   edits.sort((a, b) => b.start - a.start || b.end - a.end);
   return edits;
+}
+
+/**
+ * 支援段內軟換行 (Shift+Enter -> \u000b / \r / \n)：逐子行獨立計算最小化替換，
+ * 避免跨行誤判歌詞/段落標籤或讓對齊空白 debt 跨行污染。
+ */
+function computeMinimalEditsForParagraph_(fullText, srcKey, dstKey, accPref, mode) {
+  if (!/[\r\n\u000b]/.test(fullText)) {
+    return computeMinimalEditsForLine_(fullText, srcKey, dstKey, accPref, mode);
+  }
+  const allEdits = [];
+  let offset = 0;
+  const parts = fullText.split(/([\r\n\u000b])/);
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    if (i % 2 === 0 && part.trim()) {
+      const subEdits = computeMinimalEditsForLine_(part, srcKey, dstKey, accPref, mode);
+      for (const ed of subEdits) {
+        allEdits.push({
+          start: ed.start + offset,
+          end: ed.end + offset,
+          text: ed.text
+        });
+      }
+    }
+    offset += part.length;
+  }
+  allEdits.sort((a, b) => b.start - a.start || b.end - a.end);
+  return allEdits;
+}
+
+function getSafeHeadingAttrs_(body, para, headingCache) {
+  let headingKey = 'NORMAL';
+  let headingEnum = DocumentApp.ParagraphHeading.NORMAL;
+  try {
+    if (typeof para.getHeading === 'function') {
+      const h = para.getHeading();
+      if (h) {
+        headingEnum = h;
+        headingKey = String(h);
+      }
+    }
+  } catch (e) {}
+  if (!headingCache[headingKey]) {
+    try {
+      headingCache[headingKey] = body.getHeadingAttributes(headingEnum) || {};
+    } catch (e) {
+      headingCache[headingKey] = {};
+    }
+  }
+  return headingCache[headingKey];
+}
+
+/**
+ * 沿著 Google Docs 樣式繼承鏈（字元 -> 段落 -> 標題樣式 -> Body）解析真實有效樣式，
+ * 防止 getAttributes() 回傳 null 時無法還原字級或清除誤繼承灰底。
+ */
+function captureEffectiveStyle_(textEl, para, idx, headingCache, body, bodyAttrs) {
+  const A = DocumentApp.Attribute;
+  const paraAttrs = (typeof para.getAttributes === 'function' ? para.getAttributes() : null) || {};
+  const headingAttrs = getSafeHeadingAttrs_(body, para, headingCache);
+
+  const rawFontSize = textEl.getFontSize(idx);
+  const rawFontFamily = textEl.getFontFamily(idx);
+  const rawBg = textEl.getBackgroundColor(idx);
+  const rawFg = textEl.getForegroundColor(idx);
+  const rawBold = textEl.isBold(idx);
+  const rawItalic = textEl.isItalic(idx);
+  const rawUnderline = textEl.isUnderline(idx);
+  const rawStrike = textEl.isStrikethrough(idx);
+
+  function resolve(rawVal, attrKey) {
+    if (rawVal !== undefined && rawVal !== null) return rawVal;
+    if (paraAttrs[attrKey] !== undefined && paraAttrs[attrKey] !== null) return paraAttrs[attrKey];
+    if (headingAttrs[attrKey] !== undefined && headingAttrs[attrKey] !== null) return headingAttrs[attrKey];
+    if (bodyAttrs[attrKey] !== undefined && bodyAttrs[attrKey] !== null) return bodyAttrs[attrKey];
+    return null;
+  }
+
+  const fontSize = resolve(rawFontSize, A.FONT_SIZE);
+  let lineFallbackSize = null;
+  if (fontSize === null) {
+    const txt = textEl.getText();
+    for (let k = idx + 1; k < txt.length; k++) {
+      const ch = txt[k];
+      if (ch === '\r' || ch === '\n' || ch === '\u000b') break;
+      const sz = textEl.getFontSize(k);
+      if (sz !== null && sz !== undefined) {
+        lineFallbackSize = sz;
+        break;
+      }
+    }
+  }
+
+  return {
+    fontSize: fontSize,
+    rawFontSize: rawFontSize !== undefined ? rawFontSize : null,
+    lineFallbackSize: lineFallbackSize,
+    fontFamily: resolve(rawFontFamily, A.FONT_FAMILY),
+    rawFontFamily: rawFontFamily !== undefined ? rawFontFamily : null,
+    backgroundColor: rawBg !== undefined ? rawBg : null,
+    foregroundColor: resolve(rawFg, A.FOREGROUND_COLOR),
+    rawForegroundColor: rawFg !== undefined ? rawFg : null,
+    bold: resolve(rawBold, A.BOLD),
+    italic: resolve(rawItalic, A.ITALIC),
+    underline: resolve(rawUnderline, A.UNDERLINE),
+    strikethrough: resolve(rawStrike, A.STRIKETHROUGH)
+  };
+}
+
+/**
+ * 判斷此替換位置是否位於段落起點、Tab/軟換行之後、或樣式邊界之後：
+ * 這些位置若在同一筆 saveAndClose() 交易內直接刪除原首字，DocumentApp 合併 diff 後
+ * 會讓新和弦在 Kix 端誤繼承前一段/前一個字元的大字級或灰底色塊！
+ */
+function needsBoundaryShield_(textEl, fullText, startIdx) {
+  if (startIdx <= 0) return true;
+  const prevCh = fullText[startIdx - 1];
+  if (prevCh === '\t' || prevCh === '\r' || prevCh === '\n' || prevCh === '\u000b') return true;
+  if (textEl.getFontSize(startIdx - 1) !== textEl.getFontSize(startIdx)) return true;
+  if (textEl.getBackgroundColor(startIdx - 1) !== textEl.getBackgroundColor(startIdx)) return true;
+  if (textEl.getFontFamily(startIdx - 1) !== textEl.getFontFamily(startIdx)) return true;
+  if (textEl.getForegroundColor(startIdx - 1) !== textEl.getForegroundColor(startIdx)) return true;
+  if (textEl.isBold(startIdx - 1) !== textEl.isBold(startIdx)) return true;
+  return false;
+}
+
+function insertTextSafe_(textEl, offset, str) {
+  if (offset >= textEl.getText().length) {
+    textEl.appendText(str);
+  } else {
+    textEl.insertText(offset, str);
+  }
+}
+
+function rangeNeedsUpdate_(textEl, s, e, getterName, expectedVal) {
+  for (let i = s; i <= e; i++) {
+    if (textEl[getterName](i) !== expectedVal) return true;
+  }
+  return false;
+}
+
+function enforceStyleOnRange_(textEl, s, e, style) {
+  if (!style || s > e || s < 0 || e >= textEl.getText().length) return;
+  const A = DocumentApp.Attribute;
+
+  // 1. 背景色（防止誤繼承 Intro / Verse1 / ->V2 / Interlude 灰底 #cccccc）
+  if (rangeNeedsUpdate_(textEl, s, e, 'getBackgroundColor', style.backgroundColor)) {
+    textEl.setBackgroundColor(s, e, style.backgroundColor);
+  }
+
+  // 2. 字級（防止誤繼承上行歌詞 17pt 或段落標籤 11pt）
+  if (typeof style.fontSize === 'number' && style.fontSize > 0) {
+    if (rangeNeedsUpdate_(textEl, s, e, 'getFontSize', style.fontSize)) {
+      try {
+        textEl.setFontSize(s, e, style.fontSize);
+      } catch (err) {
+        textEl.setFontSize(s, e, Math.round(style.fontSize));
+      }
+    }
+  } else {
+    let hasExplicitSize = false;
+    for (let i = s; i <= e; i++) {
+      if (textEl.getFontSize(i) !== null) {
+        hasExplicitSize = true;
+        break;
+      }
+    }
+    if (hasExplicitSize) {
+      const clearSize = {};
+      clearSize[A.FONT_SIZE] = null;
+      textEl.setAttributes(s, e, clearSize);
+      let stillWrong = false;
+      for (let i = s; i <= e; i++) {
+        if (textEl.getFontSize(i) !== null) {
+          stillWrong = true;
+          break;
+        }
+      }
+      if (stillWrong) {
+        const fb = (typeof style.lineFallbackSize === 'number' && style.lineFallbackSize > 0)
+          ? Math.round(style.lineFallbackSize)
+          : 11;
+        textEl.setFontSize(s, e, fb);
+      }
+    }
+  }
+
+  // 3. 字型
+  if (style.fontFamily !== null && style.fontFamily !== undefined) {
+    let famDrifted = false;
+    for (let i = s; i <= e; i++) {
+      const actual = textEl.getFontFamily(i);
+      if (style.rawFontFamily !== null) {
+        if (actual !== style.rawFontFamily) { famDrifted = true; break; }
+      } else if (actual !== null && actual !== style.fontFamily) {
+        famDrifted = true;
+        break;
+      }
+    }
+    if (famDrifted) {
+      try {
+        textEl.setFontFamily(s, e, style.fontFamily);
+      } catch (err) {
+        // 忽略非 Google Fonts 內建名稱的字型設定例外，避免中斷轉調
+      }
+    }
+  }
+
+  // 4. 文字顏色
+  if (style.rawForegroundColor !== null) {
+    if (rangeNeedsUpdate_(textEl, s, e, 'getForegroundColor', style.rawForegroundColor)) {
+      textEl.setForegroundColor(s, e, style.rawForegroundColor);
+    }
+  } else {
+    let fgDrifted = false;
+    for (let i = s; i <= e; i++) {
+      const actual = textEl.getForegroundColor(i);
+      if (actual !== null && actual !== style.foregroundColor) {
+        fgDrifted = true;
+        break;
+      }
+    }
+    if (fgDrifted) {
+      textEl.setForegroundColor(s, e, style.foregroundColor);
+    }
+  }
+
+  // 5. 粗體 / 斜體 / 底線 / 刪除線
+  const boolChecks = [
+    ['isBold', 'setBold', style.bold],
+    ['isItalic', 'setItalic', style.italic],
+    ['isUnderline', 'setUnderline', style.underline],
+    ['isStrikethrough', 'setStrikethrough', style.strikethrough]
+  ];
+  for (const [getter, setter, expected] of boolChecks) {
+    const targetBool = expected === true;
+    let drifted = false;
+    for (let i = s; i <= e; i++) {
+      const actual = textEl[getter](i);
+      if (expected === true && actual !== true) {
+        drifted = true;
+        break;
+      }
+      if (expected !== true && actual === true) {
+        drifted = true;
+        break;
+      }
+    }
+    if (drifted) {
+      textEl[setter](s, e, targetBool);
+    }
+  }
 }
 
 function collectParagraphsFromContainer_(container, outList) {
@@ -277,6 +538,10 @@ function getActiveDocInfo() {
 
 /**
  * 執行 Google Docs 原地轉調（可選擇先建立複本，或直接編輯指定文件）
+ * 採用「兩階段防護字元提交 (Two-Phase Guard-Char Commit) + 樣式二次校驗」：
+ * - 第一階段：對位於段首 / Tab / 軟換行 / 樣式邊界的和弦，先在原首字之後插入新和弦並保留原首字作為「樣式護盾」再 saveAndClose()，
+ *   徹底阻斷 DocumentApp 合併 diff 時在段首直接替換而誤繼承上一段大字級或灰底色塊的問題。
+ * - 第二階段：重新開啟文件，僅刪除 1 字元護盾，並逐字比對還原原始字級、字型、灰底與顏色。
  */
 function runTransposeInGoogleDocs(params) {
   const targetKey = params.targetKey || 'F';
@@ -308,53 +573,117 @@ function runTransposeInGoogleDocs(params) {
     }
   }
 
+  const docId = doc.getId();
+  const docTitle = doc.getName();
+  const body = doc.getBody();
+  const bodyAttrs = body.getAttributes() || {};
+  const headingCache = {};
+
   const paragraphs = [];
-  collectParagraphsFromContainer_(doc.getBody(), paragraphs);
+  collectParagraphsFromContainer_(body, paragraphs);
   const texts = paragraphs.map(p => p.getText());
   const srcKey = (params.sourceKey && params.sourceKey !== 'auto') ? params.sourceKey : detectKeyFromParagraphs_(texts);
 
   let modifiedParagraphs = 0;
-  for (const para of paragraphs) {
-    const fullText = para.getText();
+  const deferredGuards = [];
+
+  for (let paraIdx = 0; paraIdx < paragraphs.length; paraIdx++) {
+    const para = paragraphs[paraIdx];
+    const textEl = para.editAsText();
+    const fullText = textEl.getText();
     if (!fullText.trim()) continue;
-    const edits = computeMinimalEditsForLine_(fullText, srcKey, targetKey, accPref, mode);
+    const edits = computeMinimalEditsForParagraph_(fullText, srcKey, targetKey, accPref, mode);
     if (edits.length === 0) continue;
 
-    const textEl = para.editAsText();
+    const paraGuards = [];
+
     for (const ed of edits) {
+      let delta = 0;
       if (ed.text.length > 0 && ed.end > ed.start) {
-        // 讀取原本第一個和弦字元的樣式，並插入在 ed.start + 1 之後再刪除原字元
-        // 這樣當 ed.start === 0 時才不會誤繼承到「上一段」的大字級或灰底樣式！
-        const origAttrs = textEl.getAttributes(ed.start);
-        textEl.insertText(ed.start + 1, ed.text);
+        const origStyle = captureEffectiveStyle_(textEl, para, ed.start, headingCache, body, bodyAttrs);
+        const useShield = needsBoundaryShield_(textEl, fullText, ed.start);
+
+        insertTextSafe_(textEl, ed.start + 1, ed.text);
         if (ed.end - ed.start > 1) {
           textEl.deleteText(ed.start + 1 + ed.text.length, ed.end + ed.text.length - 1);
         }
-        textEl.deleteText(ed.start, ed.start);
-        textEl.setAttributes(ed.start, ed.start + ed.text.length - 1, origAttrs);
+
+        if (useShield) {
+          // 第一階段先保留 ed.start 原首字作為樣式護盾，避免 Kix 合併成段首替換而繼承上一段樣式
+          delta = 1 + ed.text.length - (ed.end - ed.start);
+          for (const g of paraGuards) {
+            g.guardIdx += delta;
+          }
+          paraGuards.push({
+            guardIdx: ed.start,
+            newLen: ed.text.length,
+            guardChar: fullText[ed.start],
+            origStyle: origStyle
+          });
+        } else {
+          textEl.deleteText(ed.start, ed.start);
+          enforceStyleOnRange_(textEl, ed.start, ed.start + ed.text.length - 1, origStyle);
+          delta = ed.text.length - (ed.end - ed.start);
+          for (const g of paraGuards) {
+            g.guardIdx += delta;
+          }
+        }
       } else if (ed.text.length > 0) {
         // 純補空白 (debt < 0)
         const curLen = textEl.getText().length;
         const refIdx = ed.start < curLen ? ed.start : Math.max(0, ed.start - 1);
-        const refAttrs = curLen > 0 ? textEl.getAttributes(refIdx) : null;
-        textEl.insertText(ed.start, ed.text);
-        if (refAttrs) {
-          textEl.setAttributes(ed.start, ed.start + ed.text.length - 1, refAttrs);
+        const refStyle = curLen > 0 ? captureEffectiveStyle_(textEl, para, refIdx, headingCache, body, bodyAttrs) : null;
+        insertTextSafe_(textEl, ed.start, ed.text);
+        if (refStyle) {
+          enforceStyleOnRange_(textEl, ed.start, ed.start + ed.text.length - 1, refStyle);
+        }
+        delta = ed.text.length;
+        for (const g of paraGuards) {
+          g.guardIdx += delta;
         }
       } else if (ed.end > ed.start) {
         // 純刪除多餘空白 (debt > 0)
         textEl.deleteText(ed.start, ed.end - 1);
+        delta = -(ed.end - ed.start);
+        for (const g of paraGuards) {
+          g.guardIdx += delta;
+        }
       }
+    }
+
+    if (paraGuards.length > 0) {
+      deferredGuards.push({ paraIdx: paraIdx, guards: paraGuards });
     }
     modifiedParagraphs++;
   }
 
   doc.saveAndClose();
-  const docId = doc.getId();
+
+  // 第二階段：重新載入已寫入的文件，移除 1 字元樣式護盾並強制校驗字級與背景色
+  if (deferredGuards.length > 0) {
+    const doc2 = DocumentApp.openById(docId);
+    const paragraphs2 = [];
+    collectParagraphsFromContainer_(doc2.getBody(), paragraphs2);
+
+    for (const item of deferredGuards) {
+      if (item.paraIdx >= paragraphs2.length) continue;
+      const textEl2 = paragraphs2[item.paraIdx].editAsText();
+      // item.guards 已依 guardIdx 由大到小排列，刪除較後方護盾不會影響前方索引
+      for (const g of item.guards) {
+        const curText = textEl2.getText();
+        if (g.guardIdx >= 0 && g.guardIdx < curText.length && curText.charAt(g.guardIdx) === g.guardChar) {
+          textEl2.deleteText(g.guardIdx, g.guardIdx);
+          enforceStyleOnRange_(textEl2, g.guardIdx, g.guardIdx + g.newLen - 1, g.origStyle);
+        }
+      }
+    }
+    doc2.saveAndClose();
+  }
+
   return {
     ok: true,
     docId: docId,
-    title: doc.getName(),
+    title: docTitle,
     docUrl: `https://docs.google.com/document/d/${docId}/edit`,
     pdfUrl: `https://docs.google.com/document/d/${docId}/export?format=pdf`,
     srcKey: srcKey,

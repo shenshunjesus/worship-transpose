@@ -2308,14 +2308,16 @@ G - - - | A - - -
 
         if (debt > 0) {
           const mSpaces = gap.match(/ {2,}/);
+          let mSpacesEnd = -1;
           if (mSpaces) {
             const consume = Math.min(debt, mSpaces[0].length - 1);
             if (consume > 0) {
               edits.push({ start: gapStart + mSpaces.index, end: gapStart + mSpaces.index + consume, text: "" });
               debt -= consume;
             }
+            mSpacesEnd = mSpaces.index + mSpaces[0].length;
           }
-          if (debt > 0) {
+          if (debt > 0 && mSpacesEnd < gap.length) {
             const trail = gap.length - gap.trimEnd().length;
             const consume = Math.min(debt, Math.max(0, trail - 1));
             if (consume > 0) {
@@ -2342,6 +2344,27 @@ G - - - | A - - -
 
       edits.sort((a, b) => b.start - a.start || b.end - a.end);
       return edits;
+    }
+
+    function computeMinimalEditsForParagraph(fullText, srcKey, dstKey, accPref, mode, capoInfo = null) {
+      if (!/[\r\n\u000b]/.test(fullText)) {
+        return computeMinimalEditsForLine(fullText, srcKey, dstKey, accPref, mode, capoInfo);
+      }
+      const allEdits = [];
+      let offset = 0;
+      const parts = fullText.split(/([\r\n\u000b])/);
+      for (let i = 0; i < parts.length; i++) {
+        const part = parts[i];
+        if (i % 2 === 0 && part.trim()) {
+          const subEdits = computeMinimalEditsForLine(part, srcKey, dstKey, accPref, mode, capoInfo);
+          for (const ed of subEdits) {
+            allEdits.push({ start: ed.start + offset, end: ed.end + offset, text: ed.text });
+          }
+        }
+        offset += part.length;
+      }
+      allEdits.sort((a, b) => b.start - a.start || b.end - a.end);
+      return allEdits;
     }
 
     const gdocsModal = document.getElementById("gdocsDirectModal");
@@ -2510,10 +2533,21 @@ G - - - | A - - -
             const paragraphs = [];
             collectDocParagraphsForApi(docJson.body?.content, paragraphs);
 
-            const allTexts = paragraphs.map(p =>
-              (p.elements || []).map(e => e.textRun?.content || "").join("").replace(/\n$/, "")
-            );
+            const allTexts = [];
+            for (const p of paragraphs) {
+              const raw = (p.elements || []).map(e => e.textRun?.content || "").join("").replace(/\n$/, "");
+              for (const sub of raw.split(/[\r\n\u000b]+/)) allTexts.push(sub);
+            }
             const detectedSrc = state.rawText.trim() ? state.srcKey : detectSourceKey(allTexts);
+
+            const styleKeys = ["fontSize", "backgroundColor", "weightedFontFamily", "foregroundColor", "bold", "italic", "underline", "strikethrough"];
+            const buildCleanStyle = (origStyle) => {
+              const clean = {};
+              for (const k of styleKeys) {
+                if (origStyle && origStyle[k] !== undefined) clean[k] = origStyle[k];
+              }
+              return clean;
+            };
 
             const requests = [];
             // Build edits from bottom of document to top so indices never shift
@@ -2521,20 +2555,23 @@ G - - - | A - - -
               const p = paragraphs[pi];
               let fullText = "";
               const charToDocIdx = [];
+              const charToTextStyle = [];
               for (const el of p.elements || []) {
                 if (el.textRun && typeof el.textRun.content === "string") {
                   const txt = el.textRun.content;
+                  const runStyle = el.textRun.textStyle || {};
                   for (let ci = 0; ci < txt.length; ci++) {
                     if (ci === txt.length - 1 && txt[ci] === "\n" && el === p.elements[p.elements.length - 1]) {
                       continue; // Never edit trailing paragraph newline
                     }
                     fullText += txt[ci];
                     charToDocIdx.push(el.startIndex + ci);
+                    charToTextStyle.push(runStyle);
                   }
                 }
               }
               if (!fullText.trim()) continue;
-              const edits = computeMinimalEditsForLine(fullText, detectedSrc, state.dstKey, state.accPref, state.mode, state.capoOverride);
+              const edits = computeMinimalEditsForParagraph(fullText, detectedSrc, state.dstKey, state.accPref, state.mode, state.capoOverride);
               for (const ed of edits) {
                 const docStart = ed.start < charToDocIdx.length
                   ? charToDocIdx[ed.start]
@@ -2546,7 +2583,8 @@ G - - - | A - - -
                 if (ed.end > ed.start && docEnd - docStart !== ed.end - ed.start) continue;
 
                 if (ed.text.length > 0 && ed.end > ed.start) {
-                  // 插入在 docStart + 1 之後再刪除原字元，確保繼承該和弦本身的字體/背景色而非上一段！
+                  // 插入在 docStart + 1 之後再刪除原字元，並明確鎖定原和弦 textStyle 防止繼承上一段字級/灰底！
+                  const origStyle = charToTextStyle[ed.start] || {};
                   requests.push({ insertText: { location: { index: docStart + 1 }, text: ed.text } });
                   if (docEnd - docStart > 1) {
                     requests.push({
@@ -2560,8 +2598,24 @@ G - - - | A - - -
                       range: { startIndex: docStart, endIndex: docStart + 1 }
                     }
                   });
+                  requests.push({
+                    updateTextStyle: {
+                      range: { startIndex: docStart, endIndex: docStart + ed.text.length },
+                      textStyle: buildCleanStyle(origStyle),
+                      fields: styleKeys.join(",")
+                    }
+                  });
                 } else if (ed.text.length > 0) {
+                  const refIdx = ed.start < charToTextStyle.length ? ed.start : Math.max(0, ed.start - 1);
+                  const refStyle = charToTextStyle[refIdx] || {};
                   requests.push({ insertText: { location: { index: docStart }, text: ed.text } });
+                  requests.push({
+                    updateTextStyle: {
+                      range: { startIndex: docStart, endIndex: docStart + ed.text.length },
+                      textStyle: buildCleanStyle(refStyle),
+                      fields: styleKeys.join(",")
+                    }
+                  });
                 } else if (ed.end > ed.start) {
                   requests.push({
                     deleteContentRange: {

@@ -42,10 +42,59 @@
 
 ## 🚀 使用方式
 
-### 方法一：直接使用 GitHub Pages 網頁版
+### 方法一：直接在 Google Docs 使用 Apps Script 原生轉調（推薦・免開網頁、100% 零破版）
+
+不需要透過 `.docx` 轉檔，也不用打開任何外部網頁，直接把 [`google_docs_addon.gs`](./google_docs_addon.gs) 貼到 Google Docs 的 Apps Script，就能在原文件裡**就地替換和弦**（完整保留微軟正黑體、字級、Tab 定位點、縮排、灰底色塊與表格），且**預設會先自動建立複本，絕不更動原始歌譜**。
+
+#### 📋 5 步驟設定教學
+
+1. **複製腳本程式碼**
+   - 點開本專案中的 [`google_docs_addon.gs`](./google_docs_addon.gs)。
+   - 點擊程式碼右上角的 **複製按鈕（Copy raw file）**（或點 `Raw` 後全選 `Ctrl+A` → `Ctrl+C`）。
+
+2. **在 Google Docs 開啟 Apps Script**
+   - 打開你要轉調的 Google Docs 歌譜。
+   - 點擊上方選單列的 **`擴充功能`** → **`Apps Script`**，會開啟新的腳本編輯器分頁。
+
+3. **貼上程式碼並儲存**
+   - 將編輯器內預設的 `function myFunction() { }` **全部刪除**。
+   - 貼上剛才複製的 `google_docs_addon.gs` 完整內容。
+   - 按下上方工具列的 **儲存圖示**（或按 `Ctrl + S` / Mac 為 `Cmd + S`）。
+
+4. **首次執行並完成 Google 授權**
+   - 確認工具列函式選單為 **`onOpen`**，點擊 **`執行`**（▶）。
+   - 跳出「需要授權」視窗時，點 **`審查權限`** → 選擇你的 Google 帳號。
+   - 若出現 **「Google 尚未驗證這個應用程式」** 提示（因腳本是你自行建立的個人專案），請點左下角 **`進階`** → **`前往「未命名專案」（不安全）`** → **`允許`**。
+   - > 🔒 **安全說明**：此腳本完全在你自己的 Google 帳號下執行，不會將任何檔案或權限傳送到外部伺服器。
+
+5. **回到歌譜開始一鍵轉調**
+   - 切回原本的 Google Docs 歌譜分頁並 **重新整理頁面**（約等 3～5 秒）。
+   - 上方選單列會多出 **`🎵 敬拜歌譜轉調`** → 點選 **`開啟無損轉調面板`**，右側即會出現轉調操作面板：
+     - **原調**：預設自動偵測，也可手動指定。
+     - **目標調性**：點選欲轉換的調（`C` ～ `B`）。
+     - **譜面模式**：支援 **標準和弦譜**、**級數譜 (1-7)**、**和弦 + 級數**。
+     - **升降記號**：支援依調性自動、強制升記號（`♯`）或強制降記號（`♭`）。
+     - **安全複本**：預設勾選「先在我的雲端硬碟建立『複本』再轉調」（推薦保留勾選，避免改到原檔）。
+   - 點擊 **`開始原生轉調`**，完成後即可直接點按鈕 **開啟轉調後的 Google Docs** 或 **直接下載乾淨 PDF**！
+
+<details>
+<summary>💡 進階用法：不想每份歌譜都貼一次腳本？部署成自己的「網址轉調工具」</summary>
+
+`google_docs_addon.gs` 同時支援網頁應用程式模式（`doGet`），只需部署一次，之後貼上任何歌譜連結就能轉調：
+
+1. 在剛才存好的 Apps Script 編輯器右上角，點 **`部署`** → **`新增部署作業`**。
+2. 點齒輪圖示選 **`網頁應用程式`**。
+3. **執行身分**選 `我`，**誰可以存取**選 `僅限我自己`（或依團隊需求調整），點擊 **`部署`**。
+4. 複製產生的 **網頁應用程式網址** 並加入書籤。以後打開該網址，貼上任一份 Google Docs 歌譜連結即可直接建立轉調複本與下載 PDF！
+
+</details>
+
+---
+
+### 方法二：直接使用 GitHub Pages 網頁版（`.docx` 本地處理）
 打開 [https://shenshunjesus.github.io/worship-transpose/](https://shenshunjesus.github.io/worship-transpose/)，直接拖曳 `.docx` 檔案進去即可即時轉調與下載。
 
-### 方法二：終端機 CLI 工具 (`transpose_docx.py`)
+### 方法三：終端機 CLI 工具 (`transpose_docx.py`)
 若想在本地指令列批次處理：
 
 ```bash
@@ -59,7 +108,7 @@ python3 transpose_docx.py "坐在寶座上的那位 D.docx" --to C --mode number
 python3 transpose_docx.py "坐在寶座上的那位 D.docx" --to Db --accidental flat
 ```
 
-### 方法三：Google Drive 直接轉調工具 (`gdocs_transpose.py`)
+### 方法四：Google Drive 直接轉調工具 (`gdocs_transpose.py`)
 搭配 `gdrive` CLI，可直接指定雲端檔案 ID 進行轉調：
 
 ```bash
@@ -72,6 +121,7 @@ python3 gdocs_transpose.py "<GOOGLE_DRIVE_FILE_ID>" --to "C,Eb,F,G,number"
 
 ```
 worship-transpose/
+├── google_docs_addon.gs  # Google Docs 原生 Apps Script 無損轉調腳本（免開網頁直接套用）
 ├── index.html            # 單一靜態網頁 App (100% 純前端，無外部相依)
 ├── transpose_docx.py     # Python 核心無損 Word XML 轉調引擎 (支援 CLI)
 ├── gdocs_transpose.py    # Google Drive 整合自動化腳本
