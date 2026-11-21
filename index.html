@@ -536,10 +536,42 @@
     }
 
     .docx-page-break {
-      display: block;
-      height: 0;
-      margin: 14pt 0;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 16pt 0 12pt;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-family: var(--font-sans);
+      user-select: none;
+    }
+
+    .docx-page-break::before,
+    .docx-page-break::after {
+      content: "";
+      flex: 1;
       border-top: 1px dashed var(--border-strong);
+    }
+
+    .pagination-toggle {
+      margin-top: 10px;
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--text-secondary);
+      cursor: pointer;
+      padding: 7px 9px;
+      background: #FCFBF9;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+    }
+
+    .pagination-toggle input {
+      margin-top: 2px;
+      accent-color: var(--accent);
+      cursor: pointer;
     }
 
     .docx-table {
@@ -802,10 +834,21 @@
       }
 
       .docx-page-break {
+        display: block !important;
         border: none !important;
         margin: 0 !important;
+        padding: 0 !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        color: transparent !important;
+        height: var(--docx-page-top, 48pt) !important;
         break-before: page;
         page-break-before: always;
+      }
+
+      .docx-page-break::before,
+      .docx-page-break::after {
+        display: none !important;
       }
 
       /* 避免和弦行與歌詞行之間被非預期分頁截斷 */
@@ -813,6 +856,11 @@
       .docx-p {
         break-inside: avoid;
         page-break-inside: avoid;
+      }
+
+      .docx-keep-next {
+        break-after: avoid;
+        page-break-after: avoid;
       }
     }
 
@@ -1020,6 +1068,11 @@
           <button type="button" class="seg-btn" data-acc="sharp">強制升記號 (♯)</button>
           <button type="button" class="seg-btn" data-acc="flat">強制降記號 (♭)</button>
         </div>
+
+        <label class="pagination-toggle" title="防止 Pre-Chorus / Verse 標題與和弦/歌詞跨頁斷開，並將段落前多行空白換頁改為正式分頁，修正上傳 Google Drive 或開啟 Word 時的分頁跑版">
+          <input type="checkbox" id="chkFixPagination" checked />
+          <span><strong>🛡️ 智慧防斷頁</strong>（鎖定段落標題、和弦與歌詞同頁，修補 Word / Google Drive 分頁跑版）</span>
+        </label>
       </div>
 
       <!-- 4. Guitar Capo Helper -->
@@ -2281,6 +2334,14 @@ G - - - | A - - -
       const tokens = [];
       let fullText = "";
       let offset = 0;
+      let hasSpecialContent = Boolean(
+        pEl.getElementsByTagNameNS("*", "sectPr").length ||
+        pEl.getElementsByTagNameNS("*", "drawing").length ||
+        pEl.getElementsByTagNameNS("*", "pict").length ||
+        pEl.getElementsByTagNameNS("*", "object").length ||
+        pEl.getElementsByTagNameNS("*", "fldChar").length ||
+        pEl.getElementsByTagNameNS("*", "instrText").length
+      );
 
       for (const rEl of runEls) {
         const directRPr = parseRPrNode(xmlDirectChild(rEl, "rPr"));
@@ -2306,6 +2367,7 @@ G - - - | A - - -
             offset += 1;
           } else if (sln === "br" || sln === "cr") {
             const breakType = sln === "br" ? (xmlGetAttr(sub, "type") || "textWrapping") : "textWrapping";
+            if (breakType === "page") hasSpecialContent = true;
             tokens.push({ type: "br", breakType, start: offset, end: offset + 1, style: resolvedRPr });
             fullText += "\n";
             offset += 1;
@@ -2313,7 +2375,7 @@ G - - - | A - - -
         }
       }
 
-      return { type: "p", pPr, emptyLineSz, tokens, fullText };
+      return { type: "p", pPr, emptyLineSz, tokens, fullText, hasSpecialContent };
     }
 
     function parseTableElement(tblEl, stylesInfo) {
@@ -2542,6 +2604,7 @@ G - - - | A - - -
         pageSetup,
         defaultTabStop,
         stylesInfo,
+        stylesXmlStr,
         headerBlocks,
         bodyBlocks,
         footerBlocks,
@@ -2703,6 +2766,229 @@ G - - - | A - - -
       return out;
     }
 
+    function startsWithSectionKeyword(line) {
+      if (isSectionHeader(line)) return true;
+      const norm = normalizeFullwidthForMatch(line).trim();
+      return /^(?:->)?\s*(intro|verse\s*\d*|pre-?chorus|chorus\s*\d*|bridge\s*\d*|tag|outro|interlude|ending|solo|instrumental|vamp|turnaround)\b/i.test(norm);
+    }
+
+    function patchParagraphPPrXml(pXml, opts) {
+      if (!opts || (!opts.setKeepNext && !opts.setPageBreakBefore)) return pXml;
+      const openM = pXml.match(/^<w:p(?:\s[^>]*)?>/);
+      if (!openM) return pXml;
+      const pOpen = openM[0];
+      const rest = pXml.slice(pOpen.length);
+
+      const pPrMatch = rest.match(/^(\s*)(<w:pPr\b[^>]*\/>|<w:pPr\b[^>]*>[\s\S]*?<\/w:pPr>)/);
+      if (!pPrMatch) {
+        let ins = "";
+        if (opts.setKeepNext) ins += '<w:keepNext w:val="1"/><w:keepLines w:val="1"/>';
+        if (opts.setPageBreakBefore) ins += '<w:pageBreakBefore w:val="1"/>';
+        return pOpen + `<w:pPr>${ins}</w:pPr>` + rest;
+      }
+
+      const leadingWs = pPrMatch[1];
+      const pPrWhole = pPrMatch[2];
+      const afterPPr = rest.slice(pPrMatch[0].length);
+
+      let inner = pPrWhole.endsWith("/>")
+        ? ""
+        : pPrWhole.replace(/^<w:pPr\b[^>]*>/, "").replace(/<\/w:pPr>$/, "");
+      const pPrOpen = pPrWhole.endsWith("/>") ? "<w:pPr>" : pPrWhole.match(/^<w:pPr\b[^>]*>/)[0];
+
+      if (opts.setKeepNext) {
+        inner = inner.replace(/<w:keepNext\b[^>]*\/?>/g, "").replace(/<w:keepLines\b[^>]*\/?>/g, "");
+      }
+      if (opts.setPageBreakBefore) {
+        inner = inner.replace(/<w:pageBreakBefore\b[^>]*\/?>/g, "");
+      }
+
+      // Insert in strict ECMA-376 OOXML child order: pStyle -> keepNext -> keepLines -> pageBreakBefore -> ...
+      let prefix = "";
+      const pStyleM = inner.match(/^(\s*<w:pStyle\b[^>]*\/?>)/);
+      if (pStyleM) {
+        prefix += pStyleM[1];
+        inner = inner.slice(pStyleM[0].length);
+      }
+
+      if (opts.setKeepNext) {
+        prefix += '<w:keepNext w:val="1"/><w:keepLines w:val="1"/>';
+      } else {
+        const knM = inner.match(/^(\s*<w:keepNext\b[^>]*\/?>)/);
+        if (knM) { prefix += knM[1]; inner = inner.slice(knM[0].length); }
+        const klM = inner.match(/^(\s*<w:keepLines\b[^>]*\/?>)/);
+        if (klM) { prefix += klM[1]; inner = inner.slice(klM[0].length); }
+      }
+
+      if (opts.setPageBreakBefore) {
+        prefix += '<w:pageBreakBefore w:val="1"/>';
+      }
+
+      return pOpen + leadingWs + pPrOpen + prefix + inner + "</w:pPr>" + afterPPr;
+    }
+
+    function optimizeDocxDocumentPaginationXml(xmlStr) {
+      // Smart Pagination & Anti-Split Protection for Word & Google Drive round-trip:
+      // 1. Convert manual >=3 consecutive blank-Enter page pushes before a section header into real <w:pageBreakBefore w:val="1"/>
+      // 2. Lock section headers (<w:keepNext/>) and chord-above-lyric pairs (<w:keepNext/>) so they never split across pages
+      const bodyOpenM = xmlStr.match(/<w:body\b[^>]*>/);
+      const bodyCloseIdx = xmlStr.lastIndexOf("</w:body>");
+      if (!bodyOpenM || bodyCloseIdx < 0) return xmlStr;
+      const bodyStart = bodyOpenM.index + bodyOpenM[0].length;
+      const bodyXml = xmlStr.slice(bodyStart, bodyCloseIdx);
+
+      const tagRe = /<w:p(?:\s[^>]*)?\/>|<w:p(?:\s[^>]*)?>|<\/w:p>|<w:tbl(?:\s[^>]*)?>|<\/w:tbl>/g;
+      const tRe = /<w:t(?:\s+[^>]*)?>([\s\S]*?)<\/w:t>/g;
+      const topItems = [];
+      let tblDepth = 0;
+      let pDepth = 0;
+      let curPStart = -1;
+      let m;
+
+      while ((m = tagRe.exec(bodyXml)) !== null) {
+        const tag = m[0];
+        if (tag.startsWith("<w:tbl")) {
+          if (tblDepth === 0 && pDepth === 0) topItems.push({ kind: "tbl" });
+          tblDepth++;
+        } else if (tag === "</w:tbl>") {
+          tblDepth = Math.max(0, tblDepth - 1);
+        } else if (tblDepth === 0) {
+          if (tag.startsWith("<w:p") && tag.endsWith("/>")) {
+            if (pDepth === 0) {
+              topItems.push({
+                kind: "p",
+                start: m.index,
+                end: m.index + tag.length,
+                xml: tag,
+                text: "",
+                isPureBlank: true,
+                isPureSection: false,
+                isSection: false,
+                isChord: false,
+                isLyric: false,
+                remove: false,
+                setKeepNext: false,
+                setPageBreakBefore: false
+              });
+            }
+          } else if (tag.startsWith("<w:p")) {
+            if (pDepth === 0) curPStart = m.index;
+            pDepth++;
+          } else if (tag === "</w:p>") {
+            pDepth = Math.max(0, pDepth - 1);
+            if (pDepth === 0 && curPStart >= 0) {
+              const pEnd = m.index + tag.length;
+              const pXml = bodyXml.slice(curPStart, pEnd);
+              let text = "";
+              let tm;
+              tRe.lastIndex = 0;
+              while ((tm = tRe.exec(pXml)) !== null) text += unescapeXml(tm[1]);
+              const trimmed = text.trim();
+              const hasSpecial = /<w:(?:sectPr|drawing|pict|object|fldChar|instrText)\b|<w:br\b[^>]*w:type=["']page["']/.test(pXml);
+              const isPureSection = trimmed !== "" && isSectionHeader(trimmed);
+              const isSection = trimmed !== "" && startsWithSectionKeyword(trimmed);
+              const isChord = trimmed !== "" && isChordLine(text);
+              const isLyric = trimmed !== "" && !isPureSection && !isChord;
+              topItems.push({
+                kind: "p",
+                start: curPStart,
+                end: pEnd,
+                xml: pXml,
+                text,
+                isPureBlank: trimmed === "" && !hasSpecial,
+                isPureSection,
+                isSection,
+                isChord,
+                isLyric,
+                remove: false,
+                setKeepNext: false,
+                setPageBreakBefore: false
+              });
+              curPStart = -1;
+            }
+          }
+        }
+      }
+
+      // Pass 1: Convert >= 3 consecutive pure-blank spacer paragraphs immediately before a section header into explicit pageBreakBefore
+      let seenNonEmpty = false;
+      let i = 0;
+      while (i < topItems.length) {
+        const it = topItems[i];
+        if (it.kind !== "p") {
+          seenNonEmpty = true;
+          i++;
+          continue;
+        }
+        if (it.isPureBlank) {
+          let j = i;
+          while (j < topItems.length && topItems[j].kind === "p" && topItems[j].isPureBlank) j++;
+          const blankCount = j - i;
+          if (seenNonEmpty && blankCount >= 3 && j < topItems.length && topItems[j].kind === "p" && topItems[j].isSection) {
+            for (let k = i; k < j; k++) topItems[k].remove = true;
+            topItems[j].setPageBreakBefore = true;
+          }
+          i = j;
+        } else {
+          if (it.text.trim() !== "") seenNonEmpty = true;
+          i++;
+        }
+      }
+
+      // Pass 2: Inject keepNext + keepLines on section headers & chord lines paired with lyrics
+      for (let idx = 0; idx < topItems.length - 1; idx++) {
+        const cur = topItems[idx];
+        const nxt = topItems[idx + 1];
+        if (cur.kind !== "p" || cur.remove || nxt.kind !== "p" || nxt.remove) continue;
+        if (!nxt.text.trim()) continue;
+
+        if (cur.isPureSection) {
+          cur.setKeepNext = true;
+        } else if (cur.isSection && cur.isChord && (nxt.isChord || nxt.isLyric)) {
+          cur.setKeepNext = true;
+        } else if (cur.isChord && nxt.isLyric) {
+          cur.setKeepNext = true;
+        }
+      }
+
+      // Rebuild bodyXml with minimal targeted patches
+      let rebuiltBody = "";
+      let cursor = 0;
+      for (const it of topItems) {
+        if (it.kind !== "p") continue;
+        if (!it.remove && !it.setKeepNext && !it.setPageBreakBefore) continue;
+        rebuiltBody += bodyXml.slice(cursor, it.start);
+        if (!it.remove) {
+          rebuiltBody += patchParagraphPPrXml(it.xml, {
+            setKeepNext: it.setKeepNext,
+            setPageBreakBefore: it.setPageBreakBefore
+          });
+        }
+        cursor = it.end;
+      }
+      rebuiltBody += bodyXml.slice(cursor);
+
+      return xmlStr.slice(0, bodyStart) + rebuiltBody + xmlStr.slice(bodyCloseIdx);
+    }
+
+    function optimizeDocxStylesXml(stylesXmlStr) {
+      // Disable East Asian CJK document grid snapping (<w:snapToGrid w:val="0"/>) so Word matches Google Docs vertical line rhythm
+      if (!stylesXmlStr) return stylesXmlStr;
+      return stylesXmlStr.replace(/(<w:pPrDefault\b[^>]*>)([\s\S]*?)(<\/w:pPrDefault>)/, (whole, open, inner, close) => {
+        if (/<w:snapToGrid\b/.test(inner)) return whole;
+        if (/<w:pPr\b[^>]*\/>/.test(inner)) {
+          return open + inner.replace(/<w:pPr\b[^>]*\/>/, '<w:pPr><w:snapToGrid w:val="0"/></w:pPr>') + close;
+        }
+        if (/<w:spacing\b/.test(inner)) {
+          return open + inner.replace(/(<w:spacing\b)/, '<w:snapToGrid w:val="0"/>$1') + close;
+        }
+        if (/<\/w:pPr>/.test(inner)) {
+          return open + inner.replace(/<\/w:pPr>/, '<w:snapToGrid w:val="0"/></w:pPr>') + close;
+        }
+        return whole;
+      });
+    }
+
     function buildDocxXmlFromTextLines(templateXmlStr, transposedLines) {
       const bodyStart = templateXmlStr.indexOf("<w:body>");
       const sectPrIdx = templateXmlStr.lastIndexOf("<w:sectPr");
@@ -2751,7 +3037,8 @@ G - - - | A - - -
       dstKey: "C",
       mode: "chord",      // 'chord' | 'number' | 'dual'
       accPref: "auto",    // 'auto' | 'sharp' | 'flat'
-      capoOverride: null  // null or { capo, playKey, label }
+      capoOverride: null, // null or { capo, playKey, label }
+      fixPagination: true // auto-prevent Pre-Chorus/Verse/chord-lyric splits across pages
     };
 
     const elSrcKeyGrid = document.getElementById("srcKeyGrid");
@@ -3050,15 +3337,66 @@ G - - - | A - - -
       return pEl;
     }
 
-    function renderDocxBlocks(blocks, containerEl, tabQueue) {
-      for (const blk of blocks) {
+    function renderDocxBlocks(blocks, containerEl, tabQueue, applySmartPagination = false) {
+      // Precompute smart pagination flags (mirrors optimizeDocxDocumentPaginationXml 1:1)
+      const skipIdx = new Set();
+      const forceBreakBefore = new Set();
+      const keepNextSet = new Set();
+
+      if (applySmartPagination && state.fixPagination) {
+        const isPureBlank = (blk) => blk && blk.type === "p" && !blk.fullText.trim() && !blk.hasSpecialContent;
+        const isPureSec = (blk) => blk && blk.type === "p" && blk.fullText.trim() !== "" && isSectionHeader(blk.fullText);
+        const isSec = (blk) => blk && blk.type === "p" && blk.fullText.trim() !== "" && startsWithSectionKeyword(blk.fullText);
+        const isChord = (blk) => blk && blk.type === "p" && blk.fullText.trim() !== "" && isChordLine(blk.fullText);
+        const isLyric = (blk) => blk && blk.type === "p" && blk.fullText.trim() !== "" && !isSectionHeader(blk.fullText) && !isChordLine(blk.fullText);
+
+        let seenNonEmpty = false;
+        let i = 0;
+        while (i < blocks.length) {
+          const blk = blocks[i];
+          if (blk.type !== "p") { seenNonEmpty = true; i++; continue; }
+          if (isPureBlank(blk)) {
+            let j = i;
+            while (j < blocks.length && isPureBlank(blocks[j])) j++;
+            if (seenNonEmpty && (j - i) >= 3 && j < blocks.length && isSec(blocks[j])) {
+              for (let k = i; k < j; k++) skipIdx.add(k);
+              forceBreakBefore.add(j);
+            }
+            i = j;
+          } else {
+            if (blk.fullText.trim()) seenNonEmpty = true;
+            i++;
+          }
+        }
+
+        for (let idx = 0; idx < blocks.length - 1; idx++) {
+          if (skipIdx.has(idx) || skipIdx.has(idx + 1)) continue;
+          const cur = blocks[idx];
+          const nxt = blocks[idx + 1];
+          if (cur.type !== "p" || nxt.type !== "p" || !nxt.fullText.trim()) continue;
+          if (isPureSec(cur)) {
+            keepNextSet.add(idx);
+          } else if (isSec(cur) && isChord(cur) && (isChord(nxt) || isLyric(nxt))) {
+            keepNextSet.add(idx);
+          } else if (isChord(cur) && isLyric(nxt)) {
+            keepNextSet.add(idx);
+          }
+        }
+      }
+
+      for (let idx = 0; idx < blocks.length; idx++) {
+        if (skipIdx.has(idx)) continue;
+        const blk = blocks[idx];
         if (blk.type === "p") {
-          if (blk.pPr && blk.pPr.pageBreakBefore) {
+          if ((blk.pPr && blk.pPr.pageBreakBefore) || forceBreakBefore.has(idx)) {
             const pb = document.createElement("div");
             pb.className = "docx-page-break";
+            pb.textContent = "分頁";
             containerEl.appendChild(pb);
           }
-          containerEl.appendChild(renderDocxParagraphElement(blk, tabQueue));
+          const pEl = renderDocxParagraphElement(blk, tabQueue);
+          if (keepNextSet.has(idx)) pEl.classList.add("docx-keep-next");
+          containerEl.appendChild(pEl);
         } else if (blk.type === "tbl") {
           const table = document.createElement("table");
           table.className = "docx-table";
@@ -3072,7 +3410,7 @@ G - - - | A - - -
                 td.style.backgroundColor = cell.shd;
                 td.classList.add("docx-shaded");
               }
-              renderDocxBlocks(cell.blocks, td, tabQueue);
+              renderDocxBlocks(cell.blocks, td, tabQueue, false);
               tr.appendChild(td);
             }
             table.appendChild(tr);
@@ -3099,6 +3437,7 @@ G - - - | A - - -
       elSheetPaper.style.paddingTop = model.headerBlocks.length > 0
         ? `${Math.max(24, marHeaderPt).toFixed(2)}pt`
         : `${marTopPt.toFixed(2)}pt`;
+      elSheetPaper.style.setProperty("--docx-page-top", `${Math.max(36, marTopPt).toFixed(2)}pt`);
       elSheetPaper.innerHTML = "";
 
       const tabQueue = [];
@@ -3106,19 +3445,19 @@ G - - - | A - - -
       if (model.headerBlocks.length > 0) {
         const hdrDiv = document.createElement("div");
         hdrDiv.className = "docx-header";
-        renderDocxBlocks(model.headerBlocks, hdrDiv, tabQueue);
+        renderDocxBlocks(model.headerBlocks, hdrDiv, tabQueue, false);
         elSheetPaper.appendChild(hdrDiv);
       }
 
       const bodyDiv = document.createElement("div");
       bodyDiv.className = "docx-body";
-      renderDocxBlocks(model.bodyBlocks, bodyDiv, tabQueue);
+      renderDocxBlocks(model.bodyBlocks, bodyDiv, tabQueue, true);
       elSheetPaper.appendChild(bodyDiv);
 
       if (model.footerBlocks.length > 0) {
         const ftrDiv = document.createElement("div");
         ftrDiv.className = "docx-footer";
-        renderDocxBlocks(model.footerBlocks, ftrDiv, tabQueue);
+        renderDocxBlocks(model.footerBlocks, ftrDiv, tabQueue, false);
         elSheetPaper.appendChild(ftrDiv);
       }
 
@@ -3304,8 +3643,12 @@ G - - - | A - - -
         const updatedMap = {};
         for (const [partName, xmlStr] of Object.entries(state.docxModel.partXmlMap)) {
           if (xmlStr) {
+            // Run smart pagination optimization BEFORE transposition so number-mode (1-7) still recognizes chord lines
+            const preppedXml = (partName === "word/document.xml" && state.fixPagination)
+              ? optimizeDocxDocumentPaginationXml(xmlStr)
+              : xmlStr;
             updatedMap[partName] = transposeDocxXmlString(
-              xmlStr,
+              preppedXml,
               state.srcKey,
               tKey,
               state.accPref,
@@ -3314,11 +3657,15 @@ G - - - | A - - -
             );
           }
         }
+        if (state.fixPagination && state.docxModel.stylesXmlStr) {
+          updatedMap["word/styles.xml"] = optimizeDocxStylesXml(state.docxModel.stylesXmlStr);
+        }
         outDocxBytes = await buildDocxWithUpdatedXmlMap(state.docxBytes, updatedMap);
       } else {
         const templateXml = state.docxXmlString || await extractDocumentXmlFromDocx(base64ToUint8Array(SAMPLE_DOCX_BASE64));
         const lines = getTransposedLines(tKey, tMode);
-        const finalXml = buildDocxXmlFromTextLines(templateXml, lines);
+        let finalXml = buildDocxXmlFromTextLines(templateXml, lines);
+        if (state.fixPagination) finalXml = optimizeDocxDocumentPaginationXml(finalXml);
         const baseBytes = state.docxBytes || base64ToUint8Array(SAMPLE_DOCX_BASE64);
         outDocxBytes = await buildDocxWithUpdatedXml(baseBytes, finalXml);
       }
@@ -3426,6 +3773,16 @@ G - - - | A - - -
         renderAll();
       });
     });
+
+    // Smart pagination toggle
+    const chkFixPagination = document.getElementById("chkFixPagination");
+    if (chkFixPagination) {
+      chkFixPagination.checked = state.fixPagination;
+      chkFixPagination.addEventListener("change", () => {
+        state.fixPagination = chkFixPagination.checked;
+        renderAll();
+      });
+    }
 
     // Raw text editor live update
     elRawEditor.addEventListener("input", () => {

@@ -484,13 +484,221 @@ def compute_minimal_edits_for_paragraph(
     return all_edits
 
 
+def _is_section_header(line: str) -> bool:
+    s = normalize_fullwidth_for_match(line).strip().lower().rstrip(':')
+    if not s:
+        return False
+    if s in SECTION_HEADERS:
+        return True
+    return bool(re.match(r'^(?:->)?\s*(intro|verse|chorus|bridge|tag|outro|interlude|pre-?chorus|v|pc|c|b)\s*\d*$', s, re.IGNORECASE))
+
+
+def _starts_with_section_keyword(line: str) -> bool:
+    if _is_section_header(line):
+        return True
+    norm = normalize_fullwidth_for_match(line).strip()
+    return bool(re.match(r'^(?:->)?\s*(intro|verse\s*\d*|pre-?chorus|chorus\s*\d*|bridge\s*\d*|tag|outro|interlude|ending|solo|instrumental|vamp|turnaround)\b', norm, re.IGNORECASE))
+
+
+def _patch_paragraph_ppr_xml(p_xml: str, set_keep_next: bool, set_page_break_before: bool) -> str:
+    if not set_keep_next and not set_page_break_before:
+        return p_xml
+    open_m = re.match(r'^<w:p(?:\s[^>]*)?>', p_xml)
+    if not open_m:
+        return p_xml
+    p_open = open_m.group(0)
+    rest = p_xml[len(p_open):]
+
+    ppr_m = re.match(r'^(\s*)(<w:pPr\b[^>]*/>|<w:pPr\b[^>]*>[\s\S]*?</w:pPr>)', rest)
+    if not ppr_m:
+        ins = ''
+        if set_keep_next:
+            ins += '<w:keepNext w:val="1"/><w:keepLines w:val="1"/>'
+        if set_page_break_before:
+            ins += '<w:pageBreakBefore w:val="1"/>'
+        return f'{p_open}<w:pPr>{ins}</w:pPr>{rest}'
+
+    leading_ws = ppr_m.group(1)
+    ppr_whole = ppr_m.group(2)
+    after_ppr = rest[len(ppr_m.group(0)):]
+
+    if ppr_whole.endswith('/>'):
+        ppr_open = '<w:pPr>'
+        inner = ''
+    else:
+        ppr_open = re.match(r'^<w:pPr\b[^>]*>', ppr_whole).group(0)
+        inner = ppr_whole[len(ppr_open):-len('</w:pPr>')]
+
+    if set_keep_next:
+        inner = re.sub(r'<w:keepNext\b[^>]*\/?>', '', inner)
+        inner = re.sub(r'<w:keepLines\b[^>]*\/?>', '', inner)
+    if set_page_break_before:
+        inner = re.sub(r'<w:pageBreakBefore\b[^>]*\/?>', '', inner)
+
+    prefix = ''
+    pstyle_m = re.match(r'^(\s*<w:pStyle\b[^>]*\/?>)', inner)
+    if pstyle_m:
+        prefix += pstyle_m.group(1)
+        inner = inner[len(pstyle_m.group(0)):]
+
+    if set_keep_next:
+        prefix += '<w:keepNext w:val="1"/><w:keepLines w:val="1"/>'
+    else:
+        for pat in (r'^(\s*<w:keepNext\b[^>]*\/?>)', r'^(\s*<w:keepLines\b[^>]*\/?>)'):
+            km = re.match(pat, inner)
+            if km:
+                prefix += km.group(1)
+                inner = inner[len(km.group(0)):]
+
+    if set_page_break_before:
+        prefix += '<w:pageBreakBefore w:val="1"/>'
+
+    return f'{p_open}{leading_ws}{ppr_open}{prefix}{inner}</w:pPr>{after_ppr}'
+
+
+def optimize_docx_document_pagination_bytes(xml_bytes: bytes) -> bytes:
+    """
+    Prevent pagination breaks across Word & Google Drive round-trips:
+    - Convert >= 3 consecutive pure-blank spacer paragraphs before a section header into <w:pageBreakBefore w:val="1"/>
+    - Add <w:keepNext w:val="1"/><w:keepLines w:val="1"/> on section headers and chord lines paired with lyrics
+    """
+    xml_str = xml_bytes.decode('utf-8')
+    body_open_m = re.search(r'<w:body\b[^>]*>', xml_str)
+    body_close_idx = xml_str.rfind('</w:body>')
+    if not body_open_m or body_close_idx < 0:
+        return xml_bytes
+
+    body_start = body_open_m.end()
+    body_xml = xml_str[body_start:body_close_idx]
+    tag_re = re.compile(r'<w:p(?:\s[^>]*)?/>|<w:p(?:\s[^>]*)?>|</w:p>|<w:tbl(?:\s[^>]*)?>|</w:tbl>')
+    t_re = re.compile(r'<w:t(?:\s+[^>]*)?>([\s\S]*?)</w:t>')
+    special_re = re.compile(r'<w:(?:sectPr|drawing|pict|object|fldChar|instrText)\b|<w:br\b[^>]*w:type=["\']page["\']')
+
+    def unesc(s: str) -> str:
+        return s.replace('&lt;', '<').replace('&gt;', '>').replace('&quot;', '"').replace('&apos;', "'").replace('&amp;', '&')
+
+    top_items = []
+    tbl_depth = 0
+    p_depth = 0
+    cur_p_start = -1
+
+    for m in tag_re.finditer(body_xml):
+        tag = m.group(0)
+        if tag.startswith('<w:tbl'):
+            if tbl_depth == 0 and p_depth == 0:
+                top_items.append({'kind': 'tbl'})
+            tbl_depth += 1
+        elif tag == '</w:tbl>':
+            tbl_depth = max(0, tbl_depth - 1)
+        elif tbl_depth == 0:
+            if tag.startswith('<w:p') and tag.endswith('/>'):
+                if p_depth == 0:
+                    top_items.append({
+                        'kind': 'p', 'start': m.start(), 'end': m.end(), 'xml': tag,
+                        'text': '', 'is_pure_blank': True, 'is_pure_section': False,
+                        'is_section': False, 'is_chord': False, 'is_lyric': False,
+                        'remove': False, 'set_keep_next': False, 'set_page_break_before': False
+                    })
+            elif tag.startswith('<w:p'):
+                if p_depth == 0:
+                    cur_p_start = m.start()
+                p_depth += 1
+            elif tag == '</w:p>':
+                p_depth = max(0, p_depth - 1)
+                if p_depth == 0 and cur_p_start >= 0:
+                    p_xml = body_xml[cur_p_start:m.end()]
+                    text = ''.join(unesc(tm.group(1)) for tm in t_re.finditer(p_xml))
+                    trimmed = text.strip()
+                    is_pure_sec = bool(trimmed) and _is_section_header(trimmed)
+                    is_sec = bool(trimmed) and _starts_with_section_keyword(trimmed)
+                    is_chord = bool(trimmed) and is_chord_line(text)
+                    is_lyric = bool(trimmed) and not is_pure_sec and not is_chord
+                    top_items.append({
+                        'kind': 'p', 'start': cur_p_start, 'end': m.end(), 'xml': p_xml,
+                        'text': text,
+                        'is_pure_blank': (trimmed == '' and not special_re.search(p_xml)),
+                        'is_pure_section': is_pure_sec, 'is_section': is_sec,
+                        'is_chord': is_chord, 'is_lyric': is_lyric,
+                        'remove': False, 'set_keep_next': False, 'set_page_break_before': False
+                    })
+                    cur_p_start = -1
+
+    seen_non_empty = False
+    i = 0
+    while i < len(top_items):
+        it = top_items[i]
+        if it['kind'] != 'p':
+            seen_non_empty = True
+            i += 1
+            continue
+        if it['is_pure_blank']:
+            j = i
+            while j < len(top_items) and top_items[j]['kind'] == 'p' and top_items[j]['is_pure_blank']:
+                j += 1
+            if seen_non_empty and (j - i) >= 3 and j < len(top_items) and top_items[j]['kind'] == 'p' and top_items[j]['is_section']:
+                for k in range(i, j):
+                    top_items[k]['remove'] = True
+                top_items[j]['set_page_break_before'] = True
+            i = j
+        else:
+            if it['text'].strip():
+                seen_non_empty = True
+            i += 1
+
+    for idx in range(len(top_items) - 1):
+        cur, nxt = top_items[idx], top_items[idx + 1]
+        if cur['kind'] != 'p' or cur['remove'] or nxt['kind'] != 'p' or nxt['remove']:
+            continue
+        if not nxt['text'].strip():
+            continue
+        if cur['is_pure_section']:
+            cur['set_keep_next'] = True
+        elif cur['is_section'] and cur['is_chord'] and (nxt['is_chord'] or nxt['is_lyric']):
+            cur['set_keep_next'] = True
+        elif cur['is_chord'] and nxt['is_lyric']:
+            cur['set_keep_next'] = True
+
+    parts = []
+    cursor = 0
+    for it in top_items:
+        if it['kind'] != 'p':
+            continue
+        if not it['remove'] and not it['set_keep_next'] and not it['set_page_break_before']:
+            continue
+        parts.append(body_xml[cursor:it['start']])
+        if not it['remove']:
+            parts.append(_patch_paragraph_ppr_xml(it['xml'], it['set_keep_next'], it['set_page_break_before']))
+        cursor = it['end']
+    parts.append(body_xml[cursor:])
+    return (xml_str[:body_start] + ''.join(parts) + xml_str[body_close_idx:]).encode('utf-8')
+
+
+def optimize_docx_styles_bytes(styles_bytes: bytes) -> bytes:
+    xml_str = styles_bytes.decode('utf-8')
+
+    def repl(m: re.Match) -> str:
+        open_t, inner, close_t = m.group(1), m.group(2), m.group(3)
+        if '<w:snapToGrid' in inner:
+            return m.group(0)
+        if re.search(r'<w:pPr\b[^>]*/>', inner):
+            return open_t + re.sub(r'<w:pPr\b[^>]*/>', '<w:pPr><w:snapToGrid w:val="0"/></w:pPr>', inner, count=1) + close_t
+        if '<w:spacing' in inner:
+            return open_t + re.sub(r'(<w:spacing\b)', r'<w:snapToGrid w:val="0"/>\1', inner, count=1) + close_t
+        if '</w:pPr>' in inner:
+            return open_t + inner.replace('</w:pPr>', '<w:snapToGrid w:val="0"/></w:pPr>', 1) + close_t
+        return m.group(0)
+
+    return re.sub(r'(<w:pPrDefault\b[^>]*>)([\s\S]*?)(</w:pPrDefault>)', repl, xml_str, count=1).encode('utf-8')
+
+
 def transpose_docx(
     input_path: str,
     output_path: str,
     target_key: str,
     source_key: Optional[str] = None,
     accidental_pref: str = 'auto',
-    mode: str = 'chord'
+    mode: str = 'chord',
+    fix_pagination: bool = True
 ) -> Dict[str, str]:
     """
     Losslessly transpose a .docx chord sheet while keeping all XML styling,
@@ -500,7 +708,6 @@ def transpose_docx(
         namelist = zin.namelist()
         all_files = {name: zin.read(name) for name in namelist}
 
-    xml_bytes = all_files['word/document.xml']
     header_footer_names = [
         n for n in namelist
         if re.match(r'^word/(?:header|footer)\d*\.xml$', n, re.IGNORECASE)
@@ -519,9 +726,14 @@ def transpose_docx(
 
     updated_files = dict(all_files)
     for part_name in ['word/document.xml'] + header_footer_names:
+        raw_bytes = all_files[part_name]
+        if part_name == 'word/document.xml' and fix_pagination:
+            raw_bytes = optimize_docx_document_pagination_bytes(raw_bytes)
         updated_files[part_name] = transpose_docx_xml_bytes(
-            all_files[part_name], detected_src, target_key, accidental_pref, mode
+            raw_bytes, detected_src, target_key, accidental_pref, mode
         )
+    if fix_pagination and 'word/styles.xml' in all_files:
+        updated_files['word/styles.xml'] = optimize_docx_styles_bytes(all_files['word/styles.xml'])
 
     with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zout:
         for name in namelist:
