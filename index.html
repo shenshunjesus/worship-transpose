@@ -173,16 +173,16 @@
 
     /* Main Container */
     .container {
-      max-width: 1360px;
+      max-width: 1420px;
       margin: 20px auto 0;
       padding: 0 24px;
       display: grid;
-      grid-template-columns: 440px 1fr;
+      grid-template-columns: 400px minmax(0, 1fr);
       gap: 24px;
       align-items: start;
     }
 
-    @media (max-width: 1024px) {
+    @media (max-width: 1220px) {
       .container {
         grid-template-columns: 1fr;
       }
@@ -451,6 +451,7 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
+      min-width: 0;
     }
 
     .action-toolbar {
@@ -473,6 +474,12 @@
       gap: 8px;
     }
 
+    .sheet-viewport {
+      width: 100%;
+      overflow-x: auto;
+      padding-bottom: 6px;
+    }
+
     /* Faithful A4 Document Paper Preview */
     .sheet-paper {
       background: var(--bg-paper);
@@ -484,18 +491,79 @@
       max-width: 860px;
       width: 100%;
       margin: 0 auto;
+      box-sizing: border-box;
+    }
+
+    .sheet-paper.docx-mode {
+      max-width: none;
+      flex-shrink: 0;
+      color: #000000;
+      text-rendering: geometricPrecision;
+    }
+
+    .docx-header {
+      padding-bottom: 8pt;
+      margin-bottom: 12pt;
+    }
+
+    .docx-footer {
+      padding-top: 12pt;
+      margin-top: 20pt;
+      border-top: 1px dashed var(--border-color);
+    }
+
+    .docx-p {
+      margin: 0;
+      padding: 0;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      position: relative;
+      box-sizing: border-box;
+    }
+
+    .docx-tab {
+      display: inline-block;
+      vertical-align: baseline;
+    }
+
+    .docx-chord-tint {
+      color: var(--chord-color);
+    }
+
+    .docx-shaded {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .docx-page-break {
+      display: block;
+      height: 0;
+      margin: 14pt 0;
+      border-top: 1px dashed var(--border-strong);
+    }
+
+    .docx-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      margin: 4pt 0;
+    }
+
+    .docx-table td {
+      vertical-align: top;
+      padding: 2pt 4pt;
     }
 
     @media (max-width: 640px) {
-      .sheet-paper {
+      .sheet-paper:not(.docx-mode) {
         padding: 24px 20px;
       }
     }
 
-    /* Paragraph Styles Matching Original .docx */
+    /* Paragraph Styles for Plain-Text / Manual Edit Mode (Aligned Metrics) */
     .doc-p {
-      margin-bottom: 4px;
-      word-break: break-word;
+      margin-bottom: 2px;
+      overflow-wrap: break-word;
     }
 
     .doc-title-cn {
@@ -542,23 +610,25 @@
     }
 
     .doc-chord-line {
-      font-family: "Roboto", var(--font-sans);
-      font-size: 17px;
-      font-weight: 700;
+      font-family: "Arial Unicode MS", Arial, "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif;
+      font-size: 15px;
+      font-weight: 400;
       color: var(--chord-color);
-      letter-spacing: 0.01em;
+      letter-spacing: 0;
       white-space: pre-wrap;
-      line-height: 1.45;
+      line-height: 1.38;
       margin-top: 4px;
     }
 
     .doc-lyric-line {
-      font-size: 22px;
-      font-weight: 500;
+      font-family: "Arial Unicode MS", Arial, "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif;
+      font-size: 15px;
+      font-weight: 400;
       color: #111111;
+      letter-spacing: 0;
       white-space: pre-wrap;
-      line-height: 1.5;
-      margin-bottom: 6px;
+      line-height: 1.38;
+      margin-bottom: 4px;
     }
 
     .chord-badge-inline {
@@ -677,12 +747,15 @@
         max-width: 100% !important;
       }
 
-      .right-col {
+      .right-col,
+      .preview-col,
+      .sheet-viewport {
         display: block !important;
         width: 100% !important;
         max-width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
+        overflow: visible !important;
       }
 
       /* 歌譜白紙本體：保留如同正式 A4 樂譜的優雅邊界與純淨版面，完全無工具痕跡 */
@@ -690,7 +763,6 @@
         box-shadow: none !important;
         border: none !important;
         border-radius: 0 !important;
-        padding: 16mm 20mm !important;
         margin: 0 auto !important;
         max-width: 100% !important;
         width: 100% !important;
@@ -699,20 +771,46 @@
         min-height: auto !important;
       }
 
-      .doc-chord-line {
+      .sheet-paper:not(.docx-mode) {
+        padding: 16mm 20mm !important;
+      }
+
+      .sheet-paper.docx-mode {
+        padding-bottom: 0 !important;
+      }
+
+      .doc-chord-line,
+      .docx-chord-tint {
         color: #000000 !important;
       }
 
-      /* 灰底標籤在列印時精確保留 */
+      /* 灰底標籤與原檔色塊在列印時精確保留 */
       .doc-meta-key span,
-      .doc-section-tag span {
+      .doc-section-tag span,
+      .docx-shaded {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+      }
+
+      .doc-meta-key span,
+      .doc-section-tag span {
         background: #D9D9D9 !important;
       }
 
+      .docx-footer {
+        border-top: none !important;
+      }
+
+      .docx-page-break {
+        border: none !important;
+        margin: 0 !important;
+        break-before: page;
+        page-break-before: always;
+      }
+
       /* 避免和弦行與歌詞行之間被非預期分頁截斷 */
-      .doc-p {
+      .doc-p,
+      .docx-p {
         break-inside: avoid;
         page-break-inside: avoid;
       }
@@ -857,7 +955,10 @@
 
         <div class="loaded-file-pill" id="loadedFileBanner" style="display: none;">
           <span id="loadedFileName">📄 尚未載入檔案</span>
-          <span id="loadedFileModeBadge">待機中</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;">
+            <span id="loadedFileModeBadge">待機中</span>
+            <button type="button" id="btnRestoreDocxMode" class="btn" style="display: none; padding: 2px 7px; font-size: 11px;">↩ 還原原排版</button>
+          </span>
         </div>
 
         <!-- Google Docs Direct Edit & Quick Export Helper -->
@@ -963,7 +1064,9 @@
       </div>
 
       <!-- Sheet Paper -->
-      <article class="sheet-paper" id="sheetPaper" aria-label="轉調後歌譜預覽"></article>
+      <div class="sheet-viewport">
+        <article class="sheet-paper" id="sheetPaper" aria-label="轉調後歌譜預覽"></article>
+      </div>
     </section>
   </main>
 
@@ -1406,7 +1509,15 @@ G - - - | A - - -
         let label = dstKey;
         if (mode === "number") label = `${dstKey} (級數)`;
         else if (capoInfo && capoInfo.capo > 0) label = `${dstKey} (Capo ${capoInfo.capo} Play ${capoInfo.playKey})`;
-        return line.slice(0, metaMatch.start) + label + line.slice(metaMatch.end);
+        if (label.includes("(") && /^[A-Za-z]/.test(line.slice(metaMatch.end))) {
+          label += " ";
+        }
+        return label !== metaMatch.key ? (line.slice(0, metaMatch.start) + label + line.slice(metaMatch.end)) : line;
+      }
+
+      // 0-semitone identity pass in auto-accidental chord mode: preserve original chord spellings (e.g. borrowed Bb/Ebmaj7 in G)
+      if (srcSemi === dstSemi && accPref === "auto" && mode === "chord") {
+        return line;
       }
 
       // Check inline bracket chords [G] (including fullwidth ［Ｇ］)
@@ -1633,21 +1744,28 @@ G - - - | A - - -
       return entries;
     }
 
-    async function extractDocumentXmlFromDocx(docxUint8) {
-      const entries = parseZipEntries(docxUint8);
-      const docEntry = entries.find(e => e.name === "word/document.xml");
-      if (!docEntry) throw new Error("此 .docx 檔案不包含 word/document.xml");
-      const xmlBytes = docEntry.method === 8 ? await inflateRaw(docEntry.rawCompData) : docEntry.rawCompData;
-      return new TextDecoder("utf-8").decode(xmlBytes);
+    async function readZipEntryText(entries, entryName) {
+      const entry = entries.find(e => e.name === entryName);
+      if (!entry) return null;
+      const bytes = entry.method === 8 ? await inflateRaw(entry.rawCompData) : entry.rawCompData;
+      return new TextDecoder("utf-8").decode(bytes);
     }
 
-    async function buildDocxWithUpdatedXml(baseDocxUint8, newXmlString) {
+    async function extractDocumentXmlFromDocx(docxUint8) {
+      const entries = parseZipEntries(docxUint8);
+      const docXml = await readZipEntryText(entries, "word/document.xml");
+      if (docXml === null) throw new Error("此 .docx 檔案不包含 word/document.xml");
+      return docXml;
+    }
+
+    async function buildDocxWithUpdatedXmlMap(baseDocxUint8, updatedXmlMap) {
       const entries = parseZipEntries(baseDocxUint8);
-      const newXmlBytes = new TextEncoder().encode(newXmlString);
-      const compressed = await deflateRaw(newXmlBytes);
+      const encoder = new TextEncoder();
 
       for (const e of entries) {
-        if (e.name === "word/document.xml") {
+        if (Object.prototype.hasOwnProperty.call(updatedXmlMap, e.name)) {
+          const newXmlBytes = encoder.encode(updatedXmlMap[e.name]);
+          const compressed = await deflateRaw(newXmlBytes);
           e.uncompSize = newXmlBytes.length;
           e.crc = crc32(newXmlBytes);
           e.rawCompData = compressed.data;
@@ -1719,6 +1837,10 @@ G - - - | A - - -
       return out;
     }
 
+    async function buildDocxWithUpdatedXml(baseDocxUint8, newXmlString) {
+      return buildDocxWithUpdatedXmlMap(baseDocxUint8, { "word/document.xml": newXmlString });
+    }
+
     function unescapeXml(s) {
       return s
         .replace(/&lt;/g, "<")
@@ -1740,96 +1862,845 @@ G - - - | A - - -
       return tag.replace(/<w:t\b([^>]*)>/, '<w:t xml:space="preserve"$1>');
     }
 
-    function extractDocxParagraphsWithStyles(xmlStr) {
-      const pRe = /<w:p\b[^>]*>([\s\S]*?)<\/w:p>/g;
-      const tokenRe = /<w:t(?:\s+[^>]*)?>([\s\S]*?)<\/w:t>|<w:tab\b[^>]*\/?>|<w:br\b[^>]*\/?>/g;
-      const items = [];
-      let pm;
-      while ((pm = pRe.exec(xmlStr)) !== null) {
-        const pBody = pm[1];
-        let full = "";
+    // =========================================================================
+    // 3B. Full OOXML DOM Parser & Faithful Layout Engine (Preserves Exact Alignment)
+    // =========================================================================
+    const WORD_HIGHLIGHT_MAP = {
+      yellow: "#FFFF00",
+      green: "#00FF00",
+      cyan: "#00FFFF",
+      magenta: "#FF00FF",
+      blue: "#0000FF",
+      red: "#FF0000",
+      darkBlue: "#000080",
+      darkCyan: "#008080",
+      darkGreen: "#008000",
+      darkMagenta: "#800080",
+      darkRed: "#800000",
+      darkYellow: "#808000",
+      darkGray: "#808080",
+      lightGray: "#D3D3D3",
+      black: "#000000",
+      white: null,
+      none: null
+    };
+
+    function xmlGetAttr(el, localName) {
+      if (!el || !el.attributes) return null;
+      for (let i = 0; i < el.attributes.length; i++) {
+        const a = el.attributes[i];
+        if (a.localName === localName) return a.value;
+      }
+      return null;
+    }
+
+    function xmlDirectChild(el, localName) {
+      if (!el || !el.children) return null;
+      for (let i = 0; i < el.children.length; i++) {
+        if (el.children[i].localName === localName) return el.children[i];
+      }
+      return null;
+    }
+
+    function xmlDirectChildren(el, localName) {
+      const out = [];
+      if (!el || !el.children) return out;
+      for (let i = 0; i < el.children.length; i++) {
+        if (el.children[i].localName === localName) out.push(el.children[i]);
+      }
+      return out;
+    }
+
+    function parseXmlFloat(val) {
+      if (val === null || val === undefined || val === "") return undefined;
+      const n = parseFloat(val);
+      return Number.isFinite(n) ? n : undefined;
+    }
+
+    function parseXmlBoolEl(parent, localName) {
+      const el = xmlDirectChild(parent, localName);
+      if (!el) return undefined;
+      const val = xmlGetAttr(el, "val");
+      if (val === null || val === "") return true;
+      const low = val.toLowerCase();
+      return !(low === "0" || low === "false" || low === "off");
+    }
+
+    function normalizeHexColor(val, ignoreWhite = false) {
+      if (!val) return null;
+      const clean = val.trim().replace(/^#/, "");
+      if (clean.toLowerCase() === "auto" || clean.toLowerCase() === "nil") return null;
+      if (!/^[0-9a-fA-F]{6}$/.test(clean)) return null;
+      if (ignoreWhite && clean.toLowerCase() === "ffffff") return null;
+      return "#" + clean.toLowerCase();
+    }
+
+    function parseRPrNode(rPrEl) {
+      const res = {};
+      if (!rPrEl) return res;
+      const rStyleEl = xmlDirectChild(rPrEl, "rStyle");
+      if (rStyleEl) {
+        const sid = xmlGetAttr(rStyleEl, "val");
+        if (sid) res.rStyle = sid;
+      }
+      const rFontsEl = xmlDirectChild(rPrEl, "rFonts");
+      if (rFontsEl) {
+        const fonts = {};
+        const ascii = xmlGetAttr(rFontsEl, "ascii");
+        const hAnsi = xmlGetAttr(rFontsEl, "hAnsi");
+        const eastAsia = xmlGetAttr(rFontsEl, "eastAsia");
+        const cs = xmlGetAttr(rFontsEl, "cs");
+        if (ascii) fonts.ascii = ascii;
+        if (hAnsi) fonts.hAnsi = hAnsi;
+        if (eastAsia) fonts.eastAsia = eastAsia;
+        if (cs) fonts.cs = cs;
+        if (Object.keys(fonts).length > 0) res.fonts = fonts;
+      }
+      const szEl = xmlDirectChild(rPrEl, "sz");
+      if (szEl) {
+        const sz = parseXmlFloat(xmlGetAttr(szEl, "val"));
+        if (sz !== undefined && sz > 0) res.sz = sz;
+      }
+      const b = parseXmlBoolEl(rPrEl, "b");
+      if (b !== undefined) res.b = b;
+      const i = parseXmlBoolEl(rPrEl, "i");
+      if (i !== undefined) res.i = i;
+      const strike = parseXmlBoolEl(rPrEl, "strike");
+      if (strike !== undefined) res.strike = strike;
+      const uEl = xmlDirectChild(rPrEl, "u");
+      if (uEl) {
+        const uVal = (xmlGetAttr(uEl, "val") || "single").toLowerCase();
+        res.u = uVal !== "none";
+      }
+      const colorEl = xmlDirectChild(rPrEl, "color");
+      if (colorEl) {
+        const c = normalizeHexColor(xmlGetAttr(colorEl, "val"), false);
+        res.color = c;
+      }
+      const shdEl = xmlDirectChild(rPrEl, "shd");
+      if (shdEl) {
+        const shdVal = (xmlGetAttr(shdEl, "val") || "").toLowerCase();
+        if (shdVal === "nil") {
+          res.shd = null;
+        } else {
+          const fill = normalizeHexColor(xmlGetAttr(shdEl, "fill"), true);
+          if (fill) res.shd = fill;
+        }
+      }
+      const hlEl = xmlDirectChild(rPrEl, "highlight");
+      if (hlEl) {
+        const hlName = xmlGetAttr(hlEl, "val");
+        if (hlName && Object.prototype.hasOwnProperty.call(WORD_HIGHLIGHT_MAP, hlName)) {
+          res.highlight = WORD_HIGHLIGHT_MAP[hlName];
+        }
+      }
+      return res;
+    }
+
+    function mergeRPr(base, override) {
+      if (!override) return { ...base, fonts: { ...(base.fonts || {}) } };
+      const out = { ...base, fonts: { ...(base.fonts || {}) } };
+      if (override.fonts) {
+        out.fonts = { ...out.fonts, ...override.fonts };
+      }
+      for (const k of ["sz", "b", "i", "u", "strike", "color", "shd", "highlight"]) {
+        if (override[k] !== undefined) out[k] = override[k];
+      }
+      return out;
+    }
+
+    function parsePPrNode(pPrEl) {
+      const res = {};
+      if (!pPrEl) return res;
+      const pStyleEl = xmlDirectChild(pPrEl, "pStyle");
+      if (pStyleEl) {
+        const sid = xmlGetAttr(pStyleEl, "val");
+        if (sid) res.pStyle = sid;
+      }
+      const indEl = xmlDirectChild(pPrEl, "ind");
+      if (indEl) {
+        const ind = {};
+        const left = parseXmlFloat(xmlGetAttr(indEl, "left"));
+        const start = parseXmlFloat(xmlGetAttr(indEl, "start"));
+        const right = parseXmlFloat(xmlGetAttr(indEl, "right"));
+        const end = parseXmlFloat(xmlGetAttr(indEl, "end"));
+        const firstLine = parseXmlFloat(xmlGetAttr(indEl, "firstLine"));
+        const hanging = parseXmlFloat(xmlGetAttr(indEl, "hanging"));
+        if (left !== undefined) ind.left = left;
+        else if (start !== undefined) ind.left = start;
+        if (right !== undefined) ind.right = right;
+        else if (end !== undefined) ind.right = end;
+        if (firstLine !== undefined) { ind.firstLine = firstLine; ind.hanging = 0; }
+        if (hanging !== undefined) { ind.hanging = hanging; ind.firstLine = 0; }
+        if (Object.keys(ind).length > 0) res.ind = ind;
+      }
+      const jcEl = xmlDirectChild(pPrEl, "jc");
+      if (jcEl) {
+        const v = (xmlGetAttr(jcEl, "val") || "").toLowerCase();
+        if (v === "left" || v === "start") res.jc = "left";
+        else if (v === "right" || v === "end") res.jc = "right";
+        else if (v === "center") res.jc = "center";
+        else if (v === "both" || v === "distribute") res.jc = "justify";
+      }
+      const spEl = xmlDirectChild(pPrEl, "spacing");
+      if (spEl) {
+        const sp = {};
+        const before = parseXmlFloat(xmlGetAttr(spEl, "before"));
+        const after = parseXmlFloat(xmlGetAttr(spEl, "after"));
+        const line = parseXmlFloat(xmlGetAttr(spEl, "line"));
+        const lineRule = xmlGetAttr(spEl, "lineRule");
+        if (before !== undefined) sp.before = before;
+        if (after !== undefined) sp.after = after;
+        if (line !== undefined) sp.line = line;
+        if (lineRule) sp.lineRule = lineRule;
+        if (Object.keys(sp).length > 0) res.spacing = sp;
+      }
+      const tabsEl = xmlDirectChild(pPrEl, "tabs");
+      if (tabsEl) {
+        const tabs = [];
+        for (const tEl of xmlDirectChildren(tabsEl, "tab")) {
+          const val = (xmlGetAttr(tEl, "val") || "left").toLowerCase();
+          const pos = parseXmlFloat(xmlGetAttr(tEl, "pos"));
+          if (pos !== undefined) tabs.push({ val, pos });
+        }
+        if (tabs.length > 0) res.tabs = tabs;
+      }
+      const shdEl = xmlDirectChild(pPrEl, "shd");
+      if (shdEl) {
+        const shdVal = (xmlGetAttr(shdEl, "val") || "").toLowerCase();
+        if (shdVal === "nil") {
+          res.shd = null;
+        } else {
+          const fill = normalizeHexColor(xmlGetAttr(shdEl, "fill"), true);
+          if (fill) res.shd = fill;
+        }
+      }
+      const pb = parseXmlBoolEl(pPrEl, "pageBreakBefore");
+      if (pb !== undefined) res.pageBreakBefore = pb;
+      const markRPrEl = xmlDirectChild(pPrEl, "rPr");
+      if (markRPrEl) {
+        res.markRPr = parseRPrNode(markRPrEl);
+      }
+      return res;
+    }
+
+    function mergePPr(base, override) {
+      if (!override) {
+        return {
+          ...base,
+          ind: { ...(base.ind || {}) },
+          spacing: { ...(base.spacing || {}) },
+          tabs: base.tabs ? [...base.tabs] : []
+        };
+      }
+      const out = {
+        ...base,
+        ind: { ...(base.ind || {}), ...(override.ind || {}) },
+        spacing: { ...(base.spacing || {}), ...(override.spacing || {}) },
+        tabs: base.tabs ? [...base.tabs] : []
+      };
+      if (override.tabs && override.tabs.length > 0) {
+        const byPos = new Map();
+        for (const t of out.tabs) byPos.set(Math.round(t.pos), t);
+        for (const t of override.tabs) {
+          if (t.val === "clear") byPos.delete(Math.round(t.pos));
+          else byPos.set(Math.round(t.pos), t);
+        }
+        out.tabs = [...byPos.values()].sort((a, b) => a.pos - b.pos);
+      }
+      for (const k of ["jc", "shd", "pageBreakBefore", "pStyle"]) {
+        if (override[k] !== undefined) out[k] = override[k];
+      }
+      if (override.markRPr) {
+        out.markRPr = mergeRPr(base.markRPr || {}, override.markRPr);
+      }
+      return out;
+    }
+
+    function quoteCssFont(name) {
+      if (!name) return "";
+      const clean = name.trim().replace(/^["']|["']$/g, "");
+      if (!clean) return "";
+      return /[\s\u4e00-\u9fff]/.test(clean) ? `"${clean}"` : clean;
+    }
+
+    function buildCssFontFamily(fonts) {
+      const f = fonts || {};
+      const ascii = (f.ascii || f.hAnsi || "").trim();
+      const ea = (f.eastAsia || "").trim();
+      const list = [];
+      const add = (name) => {
+        if (!name) return;
+        const q = quoteCssFont(name);
+        if (q && !list.includes(q)) list.push(q);
+      };
+
+      const expandAlias = (name) => {
+        if (!name) return;
+        const low = name.toLowerCase();
+        if (low === "arial unicode ms") {
+          add("Arial Unicode MS");
+          add("Arial");
+        } else if (low === "arial") {
+          add("Arial");
+          add("Arial Unicode MS");
+        } else if (low === "microsoft jhenghei" || name === "微軟正黑體") {
+          add("Microsoft JhengHei");
+          add("微軟正黑體");
+        } else if (low === "pmingliu" || name === "新細明體") {
+          add("PMingLiU");
+          add("新細明體");
+          add("MingLiU");
+        } else if (low === "dfkai-sb" || name === "標楷體") {
+          add("DFKai-SB");
+          add("標楷體");
+          add("BiauKai");
+        } else {
+          add(name);
+        }
+      };
+
+      if (ascii) expandAlias(ascii);
+      if (ea && ea.toLowerCase() !== ascii.toLowerCase()) expandAlias(ea);
+
+      // Clean cross-platform CJK + Latin fallbacks preserving metric fidelity
+      add("Microsoft JhengHei");
+      add("PingFang TC");
+      add("Noto Sans TC");
+      add("Arial");
+      list.push("sans-serif");
+      return list.join(", ");
+    }
+
+    function parseStylesXml(stylesXmlStr) {
+      const result = {
+        docDefaultsRPr: { fonts: { ascii: "Arial", eastAsia: "Arial" }, sz: 22 },
+        docDefaultsPPr: { ind: {}, spacing: { line: 276, lineRule: "auto" }, tabs: [] },
+        stylesById: new Map(),
+        defaultParaStyleId: null
+      };
+      if (!stylesXmlStr) return result;
+      const doc = new DOMParser().parseFromString(stylesXmlStr, "application/xml");
+      const root = doc.documentElement;
+      if (!root || root.localName === "parsererror") return result;
+
+      const dd = xmlDirectChild(root, "docDefaults");
+      if (dd) {
+        const rPrDef = xmlDirectChild(dd, "rPrDefault");
+        if (rPrDef) {
+          const rPr = parseRPrNode(xmlDirectChild(rPrDef, "rPr"));
+          result.docDefaultsRPr = mergeRPr(result.docDefaultsRPr, rPr);
+        }
+        const pPrDef = xmlDirectChild(dd, "pPrDefault");
+        if (pPrDef) {
+          const pPr = parsePPrNode(xmlDirectChild(pPrDef, "pPr"));
+          result.docDefaultsPPr = mergePPr(result.docDefaultsPPr, pPr);
+        }
+      }
+
+      for (const stEl of xmlDirectChildren(root, "style")) {
+        const id = xmlGetAttr(stEl, "styleId");
+        if (!id) continue;
+        const type = xmlGetAttr(stEl, "type") || "paragraph";
+        const isDefault = xmlGetAttr(stEl, "default") === "1" || xmlGetAttr(stEl, "default") === "true";
+        const basedOnEl = xmlDirectChild(stEl, "basedOn");
+        const basedOn = basedOnEl ? xmlGetAttr(basedOnEl, "val") : null;
+        const pPr = parsePPrNode(xmlDirectChild(stEl, "pPr"));
+        const rPr = parseRPrNode(xmlDirectChild(stEl, "rPr"));
+        result.stylesById.set(id, { id, type, isDefault, basedOn, pPr, rPr });
+        if (type === "paragraph" && isDefault && !result.defaultParaStyleId) {
+          result.defaultParaStyleId = id;
+        }
+      }
+      return result;
+    }
+
+    function resolveParaStyleChain(styleId, stylesInfo) {
+      let pPr = mergePPr({}, stylesInfo.docDefaultsPPr);
+      let rPr = mergeRPr({}, stylesInfo.docDefaultsRPr);
+      const effectiveId = styleId || stylesInfo.defaultParaStyleId;
+      if (!effectiveId) return { pPr, rPr };
+
+      const chain = [];
+      const seen = new Set();
+      let cur = effectiveId;
+      while (cur && !seen.has(cur) && stylesInfo.stylesById.has(cur)) {
+        seen.add(cur);
+        const st = stylesInfo.stylesById.get(cur);
+        chain.push(st);
+        cur = st.basedOn;
+      }
+      for (let i = chain.length - 1; i >= 0; i--) {
+        pPr = mergePPr(pPr, chain[i].pPr);
+        rPr = mergeRPr(rPr, chain[i].rPr);
+      }
+      return { pPr, rPr };
+    }
+
+    function resolveCharStyleChain(rStyleId, baseRPr, stylesInfo) {
+      if (!rStyleId || !stylesInfo.stylesById.has(rStyleId)) return baseRPr;
+      const chain = [];
+      const seen = new Set();
+      let cur = rStyleId;
+      while (cur && !seen.has(cur) && stylesInfo.stylesById.has(cur)) {
+        seen.add(cur);
+        const st = stylesInfo.stylesById.get(cur);
+        chain.push(st);
+        cur = st.basedOn;
+      }
+      let out = baseRPr;
+      for (let i = chain.length - 1; i >= 0; i--) {
+        out = mergeRPr(out, chain[i].rPr);
+      }
+      return out;
+    }
+
+    function collectRunElementsInParagraph(node, outRuns) {
+      if (!node || !node.children) return;
+      for (let i = 0; i < node.children.length; i++) {
+        const ch = node.children[i];
+        const ln = ch.localName;
+        if (ln === "r") {
+          outRuns.push(ch);
+        } else if (ln === "hyperlink" || ln === "ins" || ln === "smartTag" || ln === "sdt" || ln === "sdtContent" || ln === "fldSimple") {
+          collectRunElementsInParagraph(ch, outRuns);
+        }
+      }
+    }
+
+    function parseParagraphElement(pEl, stylesInfo) {
+      const directPPr = parsePPrNode(xmlDirectChild(pEl, "pPr"));
+      const inherited = resolveParaStyleChain(directPPr.pStyle, stylesInfo);
+      const pPr = mergePPr(inherited.pPr, directPPr);
+      const baseRunRPr = inherited.rPr;
+      const emptyLineSz = (directPPr.markRPr && directPPr.markRPr.sz) || baseRunRPr.sz || 22;
+
+      const runEls = [];
+      collectRunElementsInParagraph(pEl, runEls);
+
+      const tokens = [];
+      let fullText = "";
+      let offset = 0;
+
+      for (const rEl of runEls) {
+        const directRPr = parseRPrNode(xmlDirectChild(rEl, "rPr"));
+        let resolvedRPr = baseRunRPr;
+        if (directRPr.rStyle) {
+          resolvedRPr = resolveCharStyleChain(directRPr.rStyle, resolvedRPr, stylesInfo);
+        }
+        resolvedRPr = mergeRPr(resolvedRPr, directRPr);
+
+        for (let i = 0; i < rEl.children.length; i++) {
+          const sub = rEl.children[i];
+          const sln = sub.localName;
+          if (sln === "t") {
+            const txt = sub.textContent || "";
+            if (txt.length > 0) {
+              tokens.push({ type: "text", text: txt, start: offset, end: offset + txt.length, style: resolvedRPr });
+              fullText += txt;
+              offset += txt.length;
+            }
+          } else if (sln === "tab") {
+            tokens.push({ type: "tab", start: offset, end: offset + 1, style: resolvedRPr });
+            fullText += "\t";
+            offset += 1;
+          } else if (sln === "br" || sln === "cr") {
+            const breakType = sln === "br" ? (xmlGetAttr(sub, "type") || "textWrapping") : "textWrapping";
+            tokens.push({ type: "br", breakType, start: offset, end: offset + 1, style: resolvedRPr });
+            fullText += "\n";
+            offset += 1;
+          }
+        }
+      }
+
+      return { type: "p", pPr, emptyLineSz, tokens, fullText };
+    }
+
+    function parseTableElement(tblEl, stylesInfo) {
+      const rows = [];
+      for (const trEl of xmlDirectChildren(tblEl, "tr")) {
+        const cells = [];
+        for (const tcEl of xmlDirectChildren(trEl, "tc")) {
+          const tcPr = xmlDirectChild(tcEl, "tcPr");
+          let colSpan = 1;
+          let widthTwips = null;
+          let shd = null;
+          if (tcPr) {
+            const gs = xmlDirectChild(tcPr, "gridSpan");
+            if (gs) colSpan = Math.max(1, parseInt(xmlGetAttr(gs, "val") || "1", 10));
+            const tcW = xmlDirectChild(tcPr, "tcW");
+            if (tcW && (xmlGetAttr(tcW, "type") || "dxa") === "dxa") {
+              const w = parseXmlFloat(xmlGetAttr(tcW, "w"));
+              if (w !== undefined && w > 0) widthTwips = w;
+            }
+            const shdEl = xmlDirectChild(tcPr, "shd");
+            if (shdEl && (xmlGetAttr(shdEl, "val") || "").toLowerCase() !== "nil") {
+              shd = normalizeHexColor(xmlGetAttr(shdEl, "fill"), true);
+            }
+          }
+          const blocks = parseContainerBlocks(tcEl, stylesInfo);
+          cells.push({ colSpan, widthTwips, shd, blocks });
+        }
+        rows.push({ cells });
+      }
+      return { type: "tbl", rows };
+    }
+
+    function parseContainerBlocks(containerEl, stylesInfo) {
+      const blocks = [];
+      if (!containerEl || !containerEl.children) return blocks;
+      for (let i = 0; i < containerEl.children.length; i++) {
+        const ch = containerEl.children[i];
+        if (ch.localName === "p") {
+          blocks.push(parseParagraphElement(ch, stylesInfo));
+        } else if (ch.localName === "tbl") {
+          blocks.push(parseTableElement(ch, stylesInfo));
+        } else if (ch.localName === "sdt") {
+          const sdtContent = xmlDirectChild(ch, "sdtContent");
+          if (sdtContent) blocks.push(...parseContainerBlocks(sdtContent, stylesInfo));
+        }
+      }
+      return blocks;
+    }
+
+    function collectBlockPlainLines(blocks, outLines) {
+      for (const blk of blocks || []) {
+        if (blk.type === "p") {
+          outLines.push(blk.fullText);
+        } else if (blk.type === "tbl") {
+          for (const row of blk.rows) {
+            for (const cell of row.cells) {
+              collectBlockPlainLines(cell.blocks, outLines);
+            }
+          }
+        }
+      }
+    }
+
+    function parseSectPrNode(sectPrEl) {
+      const pageSetup = {
+        pgW: 11906,
+        pgH: 16838,
+        orient: "portrait",
+        marTop: 1440,
+        marRight: 1440,
+        marBottom: 1440,
+        marLeft: 1440,
+        marHeader: 720,
+        marFooter: 720,
+        headerRid: null,
+        footerRid: null
+      };
+      if (!sectPrEl) return pageSetup;
+      const pgSz = xmlDirectChild(sectPrEl, "pgSz");
+      if (pgSz) {
+        const w = parseXmlFloat(xmlGetAttr(pgSz, "w"));
+        const h = parseXmlFloat(xmlGetAttr(pgSz, "h"));
+        const orient = xmlGetAttr(pgSz, "orient");
+        if (w !== undefined && w > 0) pageSetup.pgW = w;
+        if (h !== undefined && h > 0) pageSetup.pgH = h;
+        if (orient) pageSetup.orient = orient;
+      }
+      const pgMar = xmlDirectChild(sectPrEl, "pgMar");
+      if (pgMar) {
+        const top = parseXmlFloat(xmlGetAttr(pgMar, "top"));
+        const right = parseXmlFloat(xmlGetAttr(pgMar, "right"));
+        const bottom = parseXmlFloat(xmlGetAttr(pgMar, "bottom"));
+        const left = parseXmlFloat(xmlGetAttr(pgMar, "left"));
+        const header = parseXmlFloat(xmlGetAttr(pgMar, "header"));
+        const footer = parseXmlFloat(xmlGetAttr(pgMar, "footer"));
+        if (top !== undefined) pageSetup.marTop = top;
+        if (right !== undefined) pageSetup.marRight = right;
+        if (bottom !== undefined) pageSetup.marBottom = bottom;
+        if (left !== undefined) pageSetup.marLeft = left;
+        if (header !== undefined) pageSetup.marHeader = header;
+        if (footer !== undefined) pageSetup.marFooter = footer;
+      }
+      for (const hr of xmlDirectChildren(sectPrEl, "headerReference")) {
+        const htype = (xmlGetAttr(hr, "type") || "default").toLowerCase();
+        const rid = xmlGetAttr(hr, "id");
+        if (rid && (htype === "default" || !pageSetup.headerRid)) {
+          pageSetup.headerRid = rid;
+        }
+      }
+      for (const fr of xmlDirectChildren(sectPrEl, "footerReference")) {
+        const ftype = (xmlGetAttr(fr, "type") || "default").toLowerCase();
+        const rid = xmlGetAttr(fr, "id");
+        if (rid && (ftype === "default" || !pageSetup.footerRid)) {
+          pageSetup.footerRid = rid;
+        }
+      }
+      return pageSetup;
+    }
+
+    async function parseDocxPackage(docxUint8) {
+      const entries = parseZipEntries(docxUint8);
+      const docXmlStr = await readZipEntryText(entries, "word/document.xml");
+      if (docXmlStr === null) throw new Error("此 .docx 檔案不包含 word/document.xml");
+
+      const stylesXmlStr = await readZipEntryText(entries, "word/styles.xml");
+      const settingsXmlStr = await readZipEntryText(entries, "word/settings.xml");
+      const relsXmlStr = await readZipEntryText(entries, "word/_rels/document.xml.rels");
+
+      const stylesInfo = parseStylesXml(stylesXmlStr);
+      let defaultTabStop = 720;
+      if (settingsXmlStr) {
+        const sDoc = new DOMParser().parseFromString(settingsXmlStr, "application/xml");
+        const sRoot = sDoc.documentElement;
+        const dts = sRoot ? xmlDirectChild(sRoot, "defaultTabStop") : null;
+        const val = dts ? parseXmlFloat(xmlGetAttr(dts, "val")) : undefined;
+        if (val !== undefined && val > 0) defaultTabStop = val;
+      }
+
+      const relMap = new Map();
+      if (relsXmlStr) {
+        const rDoc = new DOMParser().parseFromString(relsXmlStr, "application/xml");
+        const rRoot = rDoc.documentElement;
+        if (rRoot) {
+          for (const relEl of xmlDirectChildren(rRoot, "Relationship")) {
+            const id = xmlGetAttr(relEl, "Id");
+            const target = xmlGetAttr(relEl, "Target");
+            if (id && target) {
+              const normTarget = target.startsWith("/")
+                ? target.replace(/^\/+/, "")
+                : (target.startsWith("word/") ? target : `word/${target}`);
+              relMap.set(id, normTarget);
+            }
+          }
+        }
+      }
+
+      const docDom = new DOMParser().parseFromString(docXmlStr, "application/xml");
+      const docRoot = docDom.documentElement;
+      const bodyEl = docRoot ? xmlDirectChild(docRoot, "body") : null;
+      if (!bodyEl) throw new Error("word/document.xml 結構無效（缺少 w:body）");
+
+      const bodyBlocks = parseContainerBlocks(bodyEl, stylesInfo);
+      let sectPrEl = xmlDirectChild(bodyEl, "sectPr");
+      if (!sectPrEl) {
+        const allSectPr = bodyEl.getElementsByTagNameNS("*", "sectPr");
+        if (allSectPr && allSectPr.length > 0) sectPrEl = allSectPr[allSectPr.length - 1];
+      }
+      const pageSetup = parseSectPrNode(sectPrEl);
+
+      // Parse active header & footer (for display) and collect all header/footer XML entries (for export)
+      const partXmlMap = { "word/document.xml": docXmlStr };
+      const headerEntries = [];
+      const footerEntries = [];
+      for (const e of entries) {
+        if (/^word\/header\d*\.xml$/i.test(e.name)) {
+          headerEntries.push(e.name);
+          partXmlMap[e.name] = await readZipEntryText(entries, e.name);
+        } else if (/^word\/footer\d*\.xml$/i.test(e.name)) {
+          footerEntries.push(e.name);
+          partXmlMap[e.name] = await readZipEntryText(entries, e.name);
+        }
+      }
+
+      let headerBlocks = [];
+      const activeHeaderPath = pageSetup.headerRid ? relMap.get(pageSetup.headerRid) : (headerEntries[0] || null);
+      if (activeHeaderPath && partXmlMap[activeHeaderPath]) {
+        const hDom = new DOMParser().parseFromString(partXmlMap[activeHeaderPath], "application/xml");
+        if (hDom.documentElement && hDom.documentElement.localName !== "parsererror") {
+          headerBlocks = parseContainerBlocks(hDom.documentElement, stylesInfo);
+        }
+      }
+      // Trim completely blank headers
+      if (headerBlocks.every(b => b.type === "p" && !b.fullText.trim())) {
+        headerBlocks = [];
+      }
+
+      let footerBlocks = [];
+      const activeFooterPath = pageSetup.footerRid ? relMap.get(pageSetup.footerRid) : null;
+      if (activeFooterPath && partXmlMap[activeFooterPath]) {
+        const fDom = new DOMParser().parseFromString(partXmlMap[activeFooterPath], "application/xml");
+        if (fDom.documentElement && fDom.documentElement.localName !== "parsererror") {
+          footerBlocks = parseContainerBlocks(fDom.documentElement, stylesInfo);
+        }
+      }
+      if (footerBlocks.every(b => b.type === "p" && !b.fullText.trim())) {
+        footerBlocks = [];
+      }
+
+      const headerLines = [];
+      collectBlockPlainLines(headerBlocks, headerLines);
+      const bodyLines = [];
+      collectBlockPlainLines(bodyBlocks, bodyLines);
+      const footerLines = [];
+      collectBlockPlainLines(footerBlocks, footerLines);
+
+      const plainLines = [];
+      if (headerLines.length > 0) {
+        plainLines.push(...headerLines);
+      }
+      plainLines.push(...bodyLines);
+      while (plainLines.length > 1 && plainLines[plainLines.length - 1].trim() === "") {
+        plainLines.pop();
+      }
+
+      return {
+        pageSetup,
+        defaultTabStop,
+        stylesInfo,
+        headerBlocks,
+        bodyBlocks,
+        footerBlocks,
+        partXmlMap,
+        headerLines,
+        bodyLines,
+        footerLines,
+        plainLines,
+        plainText: plainLines.join("\n")
+      };
+    }
+
+    function applyEditsToTokens(tokens, edits) {
+      if (!edits || edits.length === 0) return tokens;
+      // edits MUST be sorted descending by start (b.start - a.start || b.end - a.end)
+      for (const ed of edits) {
+        if (ed.end === ed.start) {
+          // Pure insertion: find the text token containing ed.start (prefer token starting at/containing ed.start)
+          let target = tokens.find(t => t.type === "text" && t.start <= ed.start && ed.start < t.end);
+          if (!target) {
+            for (let i = tokens.length - 1; i >= 0; i--) {
+              if (tokens[i].type === "text" && tokens[i].end === ed.start) {
+                target = tokens[i];
+                break;
+              }
+            }
+          }
+          if (!target) {
+            target = tokens.find(t => t.type === "text" && t.start === ed.start);
+          }
+          if (target) {
+            const localPos = ed.start >= target.end
+              ? target.text.length
+              : Math.max(0, Math.min(target.text.length, ed.start - target.start));
+            target.text = target.text.slice(0, localPos) + ed.text + target.text.slice(localPos);
+            target.modified = true;
+          }
+        } else if (ed.end > ed.start) {
+          const overlapping = tokens.filter(t => t.end > ed.start && t.start < ed.end);
+          if (overlapping.length === 0) continue;
+          if (overlapping.some(t => t.type !== "text")) continue;
+          let isFirst = true;
+          for (const tok of overlapping) {
+            const origLen = tok.end - tok.start;
+            const localS = Math.max(0, ed.start - tok.start);
+            const localE = Math.min(origLen, ed.end - tok.start);
+            if (isFirst) {
+              tok.text = tok.text.slice(0, localS) + ed.text + tok.text.slice(localE);
+              isFirst = false;
+            } else {
+              tok.text = tok.text.slice(0, localS) + tok.text.slice(localE);
+            }
+            tok.modified = true;
+          }
+        }
+      }
+      return tokens;
+    }
+
+    function transposeDocxXmlString(xmlStr, srcKey, dstKey, accPref, mode, capoInfo) {
+      // Safe per-paragraph, per-run minimal offset-mapped XML editor:
+      // Preserves 100% of run-level fonts, sizes, gray shading (e.g. Intro), custom colors, <w:tab/>, and <w:br/>.
+      const tokenRe = /(<w:t(?:\s+[^>]*)?>)([\s\S]*?)(<\/w:t>)|<w:tab\b[^>]*\/?>|<w:br\b[^>]*\/?>|<w:cr\b[^>]*\/?>/g;
+      const pTagRe = /<w:p(?:\s[^>]*)?>|<\/w:p>/g;
+
+      // Locate leaf <w:p>...</w:p> spans safely even if nested textboxes exist
+      const leafRanges = [];
+      const stack = [];
+      let m;
+      while ((m = pTagRe.exec(xmlStr)) !== null) {
+        if (m[0].startsWith("</")) {
+          if (stack.length > 0) {
+            const openInfo = stack.pop();
+            if (!openInfo.hasChildP) {
+              leafRanges.push({
+                start: openInfo.start,
+                bodyStart: openInfo.bodyStart,
+                bodyEnd: m.index,
+                end: m.index + m[0].length
+              });
+            }
+          }
+        } else {
+          if (stack.length > 0) stack[stack.length - 1].hasChildP = true;
+          stack.push({ start: m.index, bodyStart: m.index + m[0].length, hasChildP: false });
+        }
+      }
+
+      if (leafRanges.length === 0) return xmlStr;
+      leafRanges.sort((a, b) => a.start - b.start);
+
+      let out = "";
+      let cursor = 0;
+
+      for (const r of leafRanges) {
+        out += xmlStr.slice(cursor, r.bodyStart);
+        const pBody = xmlStr.slice(r.bodyStart, r.bodyEnd);
+
+        const tokens = [];
+        let fullText = "";
+        let offset = 0;
         let tm;
         tokenRe.lastIndex = 0;
         while ((tm = tokenRe.exec(pBody)) !== null) {
           if (tm[1] !== undefined) {
-            full += unescapeXml(tm[1]);
+            const txt = unescapeXml(tm[2]);
+            tokens.push({
+              type: "text",
+              text: txt,
+              origText: txt,
+              start: offset,
+              end: offset + txt.length,
+              matchStart: tm.index,
+              matchEnd: tm.index + tm[0].length,
+              openTag: tm[1],
+              closeTag: tm[3],
+              modified: false
+            });
+            fullText += txt;
+            offset += txt.length;
           } else if (tm[0].startsWith("<w:tab")) {
-            full += "    ";
-          }
-        }
-        // Extract <w:ind w:left="..." w:firstLine="..."/> and <w:jc w:val="..."/>
-        const indMatch = pBody.match(/<w:ind\b([^>]*)\/?>/);
-        let indentLeftPx = 0;
-        let firstLinePx = 0;
-        if (indMatch) {
-          const leftM = indMatch[1].match(/w:left="(-?\d+)"/);
-          const firstM = indMatch[1].match(/w:firstLine="(-?\d+)"/);
-          if (leftM) indentLeftPx = Math.round((parseInt(leftM[1], 10) / 20) * 1.333);
-          if (firstM) firstLinePx = Math.round((parseInt(firstM[1], 10) / 20) * 1.333);
-        }
-        const jcMatch = pBody.match(/<w:jc\b[^>]*w:val="([^"]+)"/);
-        const align = jcMatch ? jcMatch[1] : "";
-        items.push({ text: full, style: { indentLeftPx, firstLinePx, align } });
-      }
-      const filtered = items.filter((item, idx) => item.text.trim() !== "" || idx < items.length - 1);
-      return {
-        lines: filtered.map(i => i.text),
-        paraStyles: filtered.map(i => i.style)
-      };
-    }
-
-    function extractLinesFromDocxXml(xmlStr) {
-      return extractDocxParagraphsWithStyles(xmlStr).lines;
-    }
-
-    function transposeDocxXmlString(xmlStr, srcKey, dstKey, accPref, mode, capoInfo) {
-      const pRe = /(<w:p\b[^>]*>)([\s\S]*?)(<\/w:p>)/g;
-      const tRe = /(<w:t(?:\s+[^>]*)?>)([\s\S]*?)(<\/w:t>)/g;
-
-      return xmlStr.replace(pRe, (wholeP, pOpen, pBody, pClose) => {
-        const tMatches = [...pBody.matchAll(tRe)];
-        if (tMatches.length === 0) return wholeP;
-
-        const fullText = tMatches.map(m => unescapeXml(m[2])).join("");
-        if (!fullText.trim()) return wholeP;
-
-        const newFullText = transposeSingleLine(fullText, srcKey, dstKey, accPref, mode, capoInfo);
-        if (newFullText === fullText) return wholeP;
-
-        if (tMatches.length === 1) {
-          const m0 = tMatches[0];
-          const newT = ensureXmlSpacePreserve(m0[1]) + escapeXml(newFullText) + m0[3];
-          return pOpen + pBody.slice(0, m0.index) + newT + pBody.slice(m0.index + m0[0].length) + pClose;
-        }
-
-        // Metadata line (e.g. Run 0: "Upper Room", Run 1: "/活水/D"): update the specific run
-        if (!isChordLine(fullText)) {
-          for (let i = tMatches.length - 1; i >= 0; i--) {
-            const mr = tMatches[i];
-            const runTxt = unescapeXml(mr[2]);
-            const newRunTxt = transposeSingleLine(runTxt, srcKey, dstKey, accPref, mode, capoInfo);
-            if (newRunTxt !== runTxt) {
-              const newT = ensureXmlSpacePreserve(mr[1]) + escapeXml(newRunTxt) + mr[3];
-              return pOpen + pBody.slice(0, mr.index) + newT + pBody.slice(mr.index + mr[0].length) + pClose;
-            }
-          }
-        }
-
-        // Chord line split across multiple <w:t>: write full transposed text to first <w:t>
-        let rebuilt = "";
-        let lastIdx = 0;
-        tMatches.forEach((mr, idx) => {
-          rebuilt += pBody.slice(lastIdx, mr.index);
-          if (idx === 0) {
-            rebuilt += ensureXmlSpacePreserve(mr[1]) + escapeXml(newFullText) + mr[3];
+            tokens.push({ type: "tab", start: offset, end: offset + 1 });
+            fullText += "\t";
+            offset += 1;
           } else {
-            rebuilt += mr[1] + mr[3];
+            tokens.push({ type: "br", start: offset, end: offset + 1 });
+            fullText += "\n";
+            offset += 1;
           }
-          lastIdx = mr.index + mr[0].length;
-        });
-        rebuilt += pBody.slice(lastIdx);
-        return pOpen + rebuilt + pClose;
-      });
+        }
+
+        if (!fullText.trim()) {
+          out += pBody;
+        } else {
+          const edits = computeMinimalEditsForParagraph(fullText, srcKey, dstKey, accPref, mode, capoInfo);
+          if (edits.length === 0) {
+            out += pBody;
+          } else {
+            applyEditsToTokens(tokens, edits);
+            let rebuilt = "";
+            let pCur = 0;
+            for (const tok of tokens) {
+              if (tok.type === "text" && tok.modified) {
+                rebuilt += pBody.slice(pCur, tok.matchStart);
+                rebuilt += ensureXmlSpacePreserve(tok.openTag) + escapeXml(tok.text) + tok.closeTag;
+                pCur = tok.matchEnd;
+              }
+            }
+            rebuilt += pBody.slice(pCur);
+            out += rebuilt;
+          }
+        }
+
+        out += xmlStr.slice(r.bodyEnd, r.end);
+        cursor = r.end;
+      }
+
+      out += xmlStr.slice(cursor);
+      return out;
     }
 
     function buildDocxXmlFromTextLines(templateXmlStr, transposedLines) {
@@ -1873,7 +2744,7 @@ G - - - | A - - -
       fileName: "歌譜.docx",
       docxBytes: null,
       docxXmlString: null,
-      paraStyles: [],
+      docxModel: null,
       textModifiedManually: false,
       rawText: "",
       srcKey: "C",
@@ -1893,6 +2764,7 @@ G - - - | A - - -
     const elLoadedFileBanner = document.getElementById("loadedFileBanner");
     const elLoadedFileName = document.getElementById("loadedFileName");
     const elLoadedFileMode = document.getElementById("loadedFileModeBadge");
+    const elBtnRestoreDocxMode = document.getElementById("btnRestoreDocxMode");
 
     function showToast(msg) {
       const t = document.getElementById("toast");
@@ -1904,14 +2776,22 @@ G - - - | A - - -
     function getOutputFileName(customTargetKey = null, customMode = null) {
       const tKey = customTargetKey || state.dstKey;
       const tMode = customMode || state.mode;
-      const base = state.fileName.replace(/\.(docx|txt|md)$/i, "");
+      const base = state.fileName.replace(/\.(docx|txt|md)$/i, "").trim();
       let suffix = tKey;
       if (tMode === "number") suffix = `${tKey}_級數譜`;
       else if (state.capoOverride && state.capoOverride.capo > 0 && !customTargetKey) {
         suffix = `${tKey}_Capo${state.capoOverride.capo}(Play_${state.capoOverride.playKey})`;
       }
-      const replaced = base.replace(/\s+[A-G][#b♯♭]?m?$/i, ` ${suffix}`);
-      const finalBase = replaced !== base ? replaced : `${base} ${suffix}`;
+      const trailingKeyRe = /(\s*[-–—]\s*|\s+)[A-GＡ-Ｇ][#b♯♭＃ｂ]?m?(?:\s*(?:key|調))?$/i;
+      const parenKeyRe = /\s*[\(（]\s*[A-GＡ-Ｇ][#b♯♭＃ｂ]?m?(?:\s*(?:key|調))?\s*[\)）]$/i;
+      let finalBase;
+      if (trailingKeyRe.test(base)) {
+        finalBase = base.replace(trailingKeyRe, `$1${suffix}`);
+      } else if (parenKeyRe.test(base)) {
+        finalBase = base.replace(parenKeyRe, ` (${suffix})`);
+      } else {
+        finalBase = `${base} ${suffix}`;
+      }
       return `${finalBase}.docx`;
     }
 
@@ -1986,6 +2866,290 @@ G - - - | A - - -
       );
     }
 
+    function resolveParagraphTabStops(pEl, para, originLeftPx, defaultTabStop) {
+      const tabSpans = pEl.querySelectorAll(".docx-tab");
+      if (!tabSpans || tabSpans.length === 0) return;
+
+      const customStops = (para.pPr && para.pPr.tabs ? para.pPr.tabs : [])
+        .filter(t => t.val !== "clear")
+        .map(t => ({ ...t }))
+        .sort((a, b) => a.pos - b.pos);
+
+      // OOXML: if hanging indent is active, left indent acts as an implicit tab stop
+      const ind = (para.pPr && para.pPr.ind) || {};
+      if (ind.hanging > 0 && ind.left > 0) {
+        customStops.push({ val: "left", pos: ind.left });
+        customStops.sort((a, b) => a.pos - b.pos);
+      }
+
+      const maxCustomPos = customStops.length > 0 ? customStops[customStops.length - 1].pos : -1;
+
+      for (const tabSpan of tabSpans) {
+        tabSpan.style.width = "0px";
+        const rect = tabSpan.getBoundingClientRect();
+        const curTwips = (rect.left - originLeftPx) * 15; // 1px = 0.75pt = 15 twips
+
+        let nextPos = null;
+        for (const st of customStops) {
+          if (st.pos > curTwips + 10) {
+            nextPos = st.pos;
+            break;
+          }
+        }
+        if (nextPos === null) {
+          const base = Math.max(0, curTwips);
+          nextPos = (Math.floor((base + 10) / defaultTabStop) + 1) * defaultTabStop;
+          if (nextPos <= maxCustomPos) {
+            nextPos = (Math.floor((maxCustomPos + 10) / defaultTabStop) + 1) * defaultTabStop;
+          }
+        }
+        const deltaPt = Math.max(4, (nextPos - curTwips) / 20);
+        tabSpan.style.width = `${deltaPt.toFixed(2)}pt`;
+      }
+    }
+
+    function renderDocxParagraphElement(para, tabQueue) {
+      const pEl = document.createElement("div");
+      pEl.className = "docx-p";
+      const pPr = para.pPr || {};
+      const ind = pPr.ind || {};
+      const sp = pPr.spacing || {};
+
+      // Exact floating-point & negative indents in pt (matches Word & Google Docs 1:1)
+      if (ind.left !== undefined && ind.left !== 0) {
+        pEl.style.marginLeft = `${(ind.left / 20).toFixed(3)}pt`;
+      }
+      if (ind.right !== undefined && ind.right !== 0) {
+        pEl.style.marginRight = `${(ind.right / 20).toFixed(3)}pt`;
+      }
+      const firstIndentTwips = (ind.firstLine || 0) - (ind.hanging || 0);
+      if (firstIndentTwips !== 0) {
+        pEl.style.textIndent = `${(firstIndentTwips / 20).toFixed(3)}pt`;
+      }
+      if (pPr.jc) {
+        pEl.style.textAlign = pPr.jc;
+      }
+      if (sp.before) {
+        pEl.style.marginTop = `${(sp.before / 20).toFixed(3)}pt`;
+      }
+      if (sp.after) {
+        pEl.style.marginBottom = `${(sp.after / 20).toFixed(3)}pt`;
+      }
+      if (sp.line) {
+        if (sp.lineRule === "exact") {
+          pEl.style.lineHeight = `${(sp.line / 20).toFixed(3)}pt`;
+        } else if (sp.lineRule === "atLeast") {
+          pEl.style.lineHeight = "1.25";
+          pEl.style.minHeight = `${(sp.line / 20).toFixed(3)}pt`;
+        } else {
+          // OOXML auto line spacing (240 = single; Google Docs default 276 = 1.15x single ≈ 1.32 CSS)
+          const mult = Math.max(1.15, (sp.line / 240) * 1.15);
+          pEl.style.lineHeight = mult.toFixed(3);
+        }
+      } else {
+        pEl.style.lineHeight = "1.32";
+      }
+      if (pPr.shd) {
+        pEl.style.backgroundColor = pPr.shd;
+        pEl.classList.add("docx-shaded");
+      }
+
+      // Determine which soft-break sub-lines are chord lines from ORIGINAL tokens
+      // (so Nashville number mode 1-7 still gets screen-only color tinting without changing metrics)
+      const subLineIsChord = [];
+      {
+        let curSub = "";
+        for (const tok of para.tokens) {
+          if (tok.type === "br") {
+            subLineIsChord.push(isChordLine(curSub));
+            curSub = "";
+          } else if (tok.type === "tab") {
+            curSub += "\t";
+          } else if (tok.type === "text") {
+            curSub += tok.text;
+          }
+        }
+        subLineIsChord.push(isChordLine(curSub));
+      }
+
+      // Clone tokens and apply exact in-place minimal transposition edits
+      const clonedTokens = para.tokens.map(t => ({ ...t }));
+      if (para.fullText.trim()) {
+        const edits = computeMinimalEditsForParagraph(
+          para.fullText,
+          state.srcKey,
+          state.dstKey,
+          state.accPref,
+          state.mode,
+          state.capoOverride
+        );
+        if (edits.length > 0) {
+          applyEditsToTokens(clonedTokens, edits);
+        }
+      }
+
+      let hasVisibleContent = false;
+      let hasTabs = false;
+      let subLineIdx = 0;
+
+      for (const tok of clonedTokens) {
+        if (tok.type === "br") {
+          if (tok.breakType === "page") {
+            const pb = document.createElement("div");
+            pb.className = "docx-page-break";
+            pEl.appendChild(pb);
+          } else {
+            pEl.appendChild(document.createElement("br"));
+          }
+          subLineIdx++;
+          hasVisibleContent = true;
+        } else if (tok.type === "tab") {
+          const tSpan = document.createElement("span");
+          tSpan.className = "docx-tab";
+          pEl.appendChild(tSpan);
+          hasTabs = true;
+          hasVisibleContent = true;
+        } else if (tok.type === "text" && tok.text.length > 0) {
+          const span = document.createElement("span");
+          const st = tok.style || {};
+          span.style.fontFamily = buildCssFontFamily(st.fonts);
+          span.style.fontSize = `${((st.sz || 22) / 2).toFixed(2)}pt`;
+          span.style.fontWeight = st.b ? "700" : "400";
+          if (st.i) span.style.fontStyle = "italic";
+          if (st.u || st.strike) {
+            span.style.textDecoration = [st.u ? "underline" : "", st.strike ? "line-through" : ""].filter(Boolean).join(" ");
+          }
+          const bg = st.highlight || st.shd || null;
+          if (bg) {
+            span.style.backgroundColor = bg;
+            span.classList.add("docx-shaded");
+          }
+          const explicitColor = st.color && st.color !== "#000000" ? st.color : null;
+          if (explicitColor) {
+            span.style.color = explicitColor;
+          } else if (subLineIsChord[subLineIdx] && !bg) {
+            // Color-only chord tint on screen (0px metric impact; reverts to #000000 on print)
+            span.classList.add("docx-chord-tint");
+          } else {
+            span.style.color = "#000000";
+          }
+          span.textContent = tok.text;
+          pEl.appendChild(span);
+          hasVisibleContent = true;
+        }
+      }
+
+      if (!hasVisibleContent) {
+        pEl.style.fontSize = `${((para.emptyLineSz || 22) / 2).toFixed(2)}pt`;
+        pEl.textContent = "\u00A0";
+      }
+
+      if (hasTabs) {
+        tabQueue.push({ pEl, para });
+      }
+      return pEl;
+    }
+
+    function renderDocxBlocks(blocks, containerEl, tabQueue) {
+      for (const blk of blocks) {
+        if (blk.type === "p") {
+          if (blk.pPr && blk.pPr.pageBreakBefore) {
+            const pb = document.createElement("div");
+            pb.className = "docx-page-break";
+            containerEl.appendChild(pb);
+          }
+          containerEl.appendChild(renderDocxParagraphElement(blk, tabQueue));
+        } else if (blk.type === "tbl") {
+          const table = document.createElement("table");
+          table.className = "docx-table";
+          for (const row of blk.rows) {
+            const tr = document.createElement("tr");
+            for (const cell of row.cells) {
+              const td = document.createElement("td");
+              if (cell.colSpan > 1) td.colSpan = cell.colSpan;
+              if (cell.widthTwips) td.style.width = `${(cell.widthTwips / 20).toFixed(2)}pt`;
+              if (cell.shd) {
+                td.style.backgroundColor = cell.shd;
+                td.classList.add("docx-shaded");
+              }
+              renderDocxBlocks(cell.blocks, td, tabQueue);
+              tr.appendChild(td);
+            }
+            table.appendChild(tr);
+          }
+          containerEl.appendChild(table);
+        }
+      }
+    }
+
+    function renderDocxModelPreview(model) {
+      const ps = model.pageSetup;
+      const pgWPt = ps.pgW / 20;
+      const marTopPt = ps.marTop / 20;
+      const marRightPt = ps.marRight / 20;
+      const marBottomPt = ps.marBottom / 20;
+      const marLeftPt = ps.marLeft / 20;
+      const marHeaderPt = ps.marHeader / 20;
+
+      elSheetPaper.classList.add("docx-mode");
+      elSheetPaper.style.width = `${pgWPt.toFixed(2)}pt`;
+      elSheetPaper.style.paddingRight = `${marRightPt.toFixed(2)}pt`;
+      elSheetPaper.style.paddingBottom = `${marBottomPt.toFixed(2)}pt`;
+      elSheetPaper.style.paddingLeft = `${marLeftPt.toFixed(2)}pt`;
+      elSheetPaper.style.paddingTop = model.headerBlocks.length > 0
+        ? `${Math.max(24, marHeaderPt).toFixed(2)}pt`
+        : `${marTopPt.toFixed(2)}pt`;
+      elSheetPaper.innerHTML = "";
+
+      const tabQueue = [];
+
+      if (model.headerBlocks.length > 0) {
+        const hdrDiv = document.createElement("div");
+        hdrDiv.className = "docx-header";
+        renderDocxBlocks(model.headerBlocks, hdrDiv, tabQueue);
+        elSheetPaper.appendChild(hdrDiv);
+      }
+
+      const bodyDiv = document.createElement("div");
+      bodyDiv.className = "docx-body";
+      renderDocxBlocks(model.bodyBlocks, bodyDiv, tabQueue);
+      elSheetPaper.appendChild(bodyDiv);
+
+      if (model.footerBlocks.length > 0) {
+        const ftrDiv = document.createElement("div");
+        ftrDiv.className = "docx-footer";
+        renderDocxBlocks(model.footerBlocks, ftrDiv, tabQueue);
+        elSheetPaper.appendChild(ftrDiv);
+      }
+
+      if (tabQueue.length > 0) {
+        const originLeftPx = bodyDiv.getBoundingClientRect().left;
+        for (const item of tabQueue) {
+          resolveParagraphTabStops(item.pEl, item.para, originLeftPx, model.defaultTabStop);
+        }
+      }
+    }
+
+    function getTransposedDocxPlainText(model) {
+      const allLines = [];
+      if (model.headerLines.length > 0) allLines.push(...model.headerLines, "");
+      allLines.push(...model.bodyLines);
+      if (model.footerLines.length > 0) allLines.push("", ...model.footerLines);
+      while (allLines.length > 1 && allLines[allLines.length - 1].trim() === "") allLines.pop();
+      return allLines.map(line =>
+        transposeSingleLine(line, state.srcKey, state.dstKey, state.accPref, state.mode, state.capoOverride)
+      ).join("\n");
+    }
+
+    function clearDocxPaperInlineStyles() {
+      elSheetPaper.classList.remove("docx-mode");
+      elSheetPaper.style.width = "";
+      elSheetPaper.style.paddingTop = "";
+      elSheetPaper.style.paddingRight = "";
+      elSheetPaper.style.paddingBottom = "";
+      elSheetPaper.style.paddingLeft = "";
+    }
+
     function renderSheetPreview() {
       const srcSemi = NOTE_TO_SEMI[state.srcKey] ?? 0;
       const dstSemi = NOTE_TO_SEMI[state.dstKey] ?? 0;
@@ -1996,7 +3160,12 @@ G - - - | A - - -
       elSummaryBadge.textContent = `${state.srcKey} → ${state.dstKey} (${diffLabel})`;
       elDownloadKeyLabel.textContent = state.rawText.trim() ? getOutputFileName() : "歌譜.docx";
 
-      if (!state.rawText.trim()) {
+      if (elBtnRestoreDocxMode) {
+        elBtnRestoreDocxMode.style.display = (state.docxModel && state.textModifiedManually) ? "inline-flex" : "none";
+      }
+
+      if (!state.rawText.trim() && !(state.docxModel && !state.textModifiedManually)) {
+        clearDocxPaperInlineStyles();
         elSheetPaper.innerHTML = `
           <div class="empty-sheet-state">
             <div style="font-size: 36px; margin-bottom: 12px;">🎼</div>
@@ -2009,35 +3178,37 @@ G - - - | A - - -
         return;
       }
 
+      // Faithful Lossless .docx Preview Mode (1:1 Fonts, Sizes, Negative/Float Indents, Shading, Headers & Tabs)
+      if (!state.textModifiedManually && state.docxModel) {
+        renderDocxModelPreview(state.docxModel);
+        return;
+      }
+
+      // Plain-Text / Manual Edit Mode
+      clearDocxPaperInlineStyles();
+      const rawLines = state.rawText.split(/\r?\n/);
       const lines = getTransposedLines();
       elSheetPaper.innerHTML = "";
 
       lines.forEach((line, idx) => {
         const trimmed = line.trim();
+        const origLine = rawLines[idx] ?? line;
+        const origIsChord = isChordLine(origLine);
         if (!trimmed) {
           const sp = document.createElement("div");
-          sp.style.height = "8px";
+          sp.style.height = "10px";
           elSheetPaper.appendChild(sp);
           return;
         }
 
         const p = document.createElement("div");
-        const pStyle = (!state.textModifiedManually && state.paraStyles && state.paraStyles[idx]) ? state.paraStyles[idx] : null;
-        if (pStyle) {
-          if (pStyle.indentLeftPx > 0) p.style.paddingLeft = `${pStyle.indentLeftPx}px`;
-          if (pStyle.firstLinePx !== 0) p.style.textIndent = `${pStyle.firstLinePx}px`;
-          if (pStyle.align === "right" || pStyle.align === "center" || pStyle.align === "left") {
-            p.style.textAlign = pStyle.align;
-          }
-        }
-
-        if (idx === 0 && !isSectionHeader(trimmed) && !isChordLine(trimmed)) {
+        if (idx === 0 && !isSectionHeader(trimmed) && !origIsChord) {
           p.className = "doc-p doc-title-cn";
           p.textContent = line;
-        } else if (idx === 1 && !isSectionHeader(trimmed) && !isChordLine(trimmed) && /^[A-Za-z0-9\s',.\-()]+$/.test(trimmed)) {
+        } else if (idx === 1 && !isSectionHeader(trimmed) && !origIsChord && /^[A-Za-z0-9\s',.\-()]+$/.test(trimmed)) {
           p.className = "doc-p doc-title-en";
           p.textContent = line;
-        } else if (idx <= 3 && (trimmed.includes("/") || /Key\s*[:：]/i.test(trimmed)) && !isChordLine(trimmed)) {
+        } else if (idx <= 3 && (trimmed.includes("/") || /Key\s*[:：]/i.test(trimmed)) && !origIsChord) {
           p.className = "doc-p doc-meta-key";
           const span = document.createElement("span");
           span.textContent = line;
@@ -2047,7 +3218,7 @@ G - - - | A - - -
           const span = document.createElement("span");
           span.textContent = line;
           p.appendChild(span);
-        } else if (isChordLine(trimmed)) {
+        } else if (origIsChord) {
           p.className = "doc-p doc-chord-line";
           p.textContent = line;
         } else {
@@ -2071,7 +3242,7 @@ G - - - | A - - -
       state.fileName = "歌譜.docx";
       state.docxBytes = null;
       state.docxXmlString = null;
-      state.paraStyles = [];
+      state.docxModel = null;
       state.rawText = "";
       state.textModifiedManually = false;
       state.srcKey = "C";
@@ -2088,23 +3259,25 @@ G - - - | A - - -
         if (file.name.toLowerCase().endsWith(".docx")) {
           const buf = await file.arrayBuffer();
           state.docxBytes = new Uint8Array(buf);
-          state.docxXmlString = await extractDocumentXmlFromDocx(state.docxBytes);
-          const extracted = extractDocxParagraphsWithStyles(state.docxXmlString);
-          state.rawText = extracted.lines.join("\n");
-          state.paraStyles = extracted.paraStyles;
+          state.docxModel = await parseDocxPackage(state.docxBytes);
+          state.docxXmlString = state.docxModel.partXmlMap["word/document.xml"];
+          state.rawText = state.docxModel.plainText;
           state.textModifiedManually = false;
-          elLoadedFileMode.textContent = "無損 .docx XML 模式";
+          elLoadedFileMode.textContent = "無損 .docx 原排版模式";
         } else {
           const text = await file.text();
           state.docxBytes = base64ToUint8Array(SAMPLE_DOCX_BASE64);
           state.docxXmlString = await extractDocumentXmlFromDocx(state.docxBytes);
+          state.docxModel = null;
           state.rawText = text;
-          state.paraStyles = [];
           state.textModifiedManually = true;
           elLoadedFileMode.textContent = "智慧 .docx 排版生成模式";
         }
         elRawEditor.value = state.rawText;
-        const detected = detectSourceKey(state.rawText.split(/\r?\n/), file.name.replace(/\.[^.]+$/, ""));
+        const detectLines = state.docxModel
+          ? [...state.docxModel.headerLines, ...state.docxModel.bodyLines]
+          : state.rawText.split(/\r?\n/);
+        const detected = detectSourceKey(detectLines, file.name.replace(/\.[^.]+$/, ""));
         state.srcKey = detected;
         state.dstKey = detected;
         state.capoOverride = null;
@@ -2124,25 +3297,32 @@ G - - - | A - - -
       }
       const tKey = targetKey || state.dstKey;
       const tMode = targetMode || state.mode;
-      let finalXml;
+      const capoArg = targetKey ? null : state.capoOverride;
+      let outDocxBytes;
 
-      if (!state.textModifiedManually && state.docxXmlString) {
-        finalXml = transposeDocxXmlString(
-          state.docxXmlString,
-          state.srcKey,
-          tKey,
-          state.accPref,
-          tMode,
-          targetKey ? null : state.capoOverride
-        );
+      if (!state.textModifiedManually && state.docxModel && state.docxBytes) {
+        const updatedMap = {};
+        for (const [partName, xmlStr] of Object.entries(state.docxModel.partXmlMap)) {
+          if (xmlStr) {
+            updatedMap[partName] = transposeDocxXmlString(
+              xmlStr,
+              state.srcKey,
+              tKey,
+              state.accPref,
+              tMode,
+              capoArg
+            );
+          }
+        }
+        outDocxBytes = await buildDocxWithUpdatedXmlMap(state.docxBytes, updatedMap);
       } else {
         const templateXml = state.docxXmlString || await extractDocumentXmlFromDocx(base64ToUint8Array(SAMPLE_DOCX_BASE64));
         const lines = getTransposedLines(tKey, tMode);
-        finalXml = buildDocxXmlFromTextLines(templateXml, lines);
+        const finalXml = buildDocxXmlFromTextLines(templateXml, lines);
+        const baseBytes = state.docxBytes || base64ToUint8Array(SAMPLE_DOCX_BASE64);
+        outDocxBytes = await buildDocxWithUpdatedXml(baseBytes, finalXml);
       }
 
-      const baseBytes = state.docxBytes || base64ToUint8Array(SAMPLE_DOCX_BASE64);
-      const outDocxBytes = await buildDocxWithUpdatedXml(baseBytes, finalXml);
       const blob = new Blob([outDocxBytes], {
         type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
       });
@@ -2154,6 +3334,19 @@ G - - - | A - - -
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    if (elBtnRestoreDocxMode) {
+      elBtnRestoreDocxMode.addEventListener("click", () => {
+        if (!state.docxModel) return;
+        state.textModifiedManually = false;
+        state.rawText = state.docxModel.plainText;
+        elRawEditor.value = state.rawText;
+        elLoadedFileName.textContent = `📄 目前載入：${state.fileName} (偵測原調: ${state.srcKey})`;
+        elLoadedFileMode.textContent = "無損 .docx 原排版模式";
+        renderAll();
+        showToast("已還原 .docx 原排版無損預覽！");
+      });
     }
 
     // Wire up DOM events
@@ -2260,11 +3453,13 @@ G - - - | A - - -
 
     // Copy text
     document.getElementById("btnCopyText").addEventListener("click", async () => {
-      if (!state.rawText.trim()) {
+      if (!state.rawText.trim() && !(state.docxModel && !state.textModifiedManually)) {
         alert("請先載入或貼上歌譜內容！");
         return;
       }
-      const text = getTransposedLines().join("\n");
+      const text = (!state.textModifiedManually && state.docxModel)
+        ? getTransposedDocxPlainText(state.docxModel)
+        : getTransposedLines().join("\n");
       await navigator.clipboard.writeText(text);
       showToast("已複製轉調後歌譜文字！");
     });
@@ -2377,7 +3572,15 @@ G - - - | A - - -
         let label = dstKey;
         if (mode === "number") label = `${dstKey} (級數)`;
         else if (capoInfo && capoInfo.capo > 0) label = `${dstKey} (Capo ${capoInfo.capo} Play ${capoInfo.playKey})`;
+        if (label.includes("(") && /^[A-Za-z]/.test(line.slice(metaMatch.end))) {
+          label += " ";
+        }
         return label !== metaMatch.key ? [{ start: metaMatch.start, end: metaMatch.end, text: label }] : [];
+      }
+
+      // 0-semitone identity pass in auto-accidental chord mode: preserve original chord spellings (e.g. borrowed Bb/Ebmaj7 in G)
+      if (srcSemi === dstSemi && accPref === "auto" && mode === "chord") {
+        return [];
       }
 
       INLINE_BRACKET_REGEX.lastIndex = 0;
@@ -2406,8 +3609,12 @@ G - - - | A - - -
         const gapStart = cursor;
         const gapEnd = m.index;
         const gap = line.slice(gapStart, gapEnd);
+        const tabPos = gap.indexOf("\t");
 
-        if (debt > 0) {
+        if (tabPos >= 0) {
+          // Tab stop automatically re-aligns the column after \t
+          debt = 0;
+        } else if (debt > 0) {
           const mSpaces = gap.match(/ {2,}/);
           let mSpacesEnd = -1;
           if (mSpaces) {
@@ -2419,7 +3626,7 @@ G - - - | A - - -
             mSpacesEnd = mSpaces.index + mSpaces[0].length;
           }
           if (debt > 0 && mSpacesEnd < gap.length) {
-            const trail = gap.length - gap.trimEnd().length;
+            const trail = (gap.match(/ +$/) || [""])[0].length;
             const consume = Math.min(debt, Math.max(0, trail - 1));
             if (consume > 0) {
               edits.push({ start: gapEnd - consume, end: gapEnd, text: "" });

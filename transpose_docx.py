@@ -277,9 +277,15 @@ def transpose_line(
     # Check if this is a metadata line (e.g. 'G key / 可萌 / 68拍', 'Upper Room/活水/D')
     meta_match = match_metadata_key(line)
     if meta_match:
-        prefix_end, suffix_start, _, _ = meta_match
+        prefix_end, suffix_start, key_str, _ = meta_match
         label = f"{dst_key} (級數)" if mode == 'number' else dst_key
-        return line[:prefix_end] + label + line[suffix_start:]
+        if '(' in label and re.match(r'[A-Za-z]', line[suffix_start:]):
+            label += ' '
+        return (line[:prefix_end] + label + line[suffix_start:]) if label != key_str else line
+
+    # 0-semitone identity pass in auto-accidental chord mode: preserve original borrowed chord spellings
+    if src_semi == dst_semi and accidental_pref == 'auto' and mode == 'chord':
+        return line
 
     # Check if line has inline bracketed chords like [G]我想認識[Bm]祢 (or fullwidth ［Ｇ］)
     bracket_matches = list(INLINE_BRACKET_CHORD_RE.finditer(norm_line))
@@ -373,6 +379,111 @@ def get_capo_suggestions(target_key: str) -> List[Dict[str, str]]:
     return suggestions
 
 
+def compute_minimal_edits_for_line(
+    line: str,
+    src_key: str,
+    dst_key: str,
+    accidental_pref: str = 'auto',
+    mode: str = 'chord'
+) -> List[Tuple[int, int, str]]:
+    """Compute minimal in-place offset edits (start, end, new_text) sorted descending by start."""
+    src_semi = NOTE_TO_SEMITONE.get(src_key.rstrip('m'), 2)
+    dst_semi = NOTE_TO_SEMITONE.get(dst_key.rstrip('m'), src_semi)
+    use_flats = should_use_flats(dst_key, accidental_pref)
+    norm_line = normalize_fullwidth_for_match(line)
+
+    meta_match = match_metadata_key(line)
+    if meta_match:
+        start, end, key_str, _ = meta_match
+        label = f"{dst_key} (級數)" if mode == 'number' else dst_key
+        if '(' in label and re.match(r'[A-Za-z]', line[end:]):
+            label += ' '
+        return [(start, end, label)] if label != key_str else []
+
+    if src_semi == dst_semi and accidental_pref == 'auto' and mode == 'chord':
+        return []
+
+    bracket_matches = list(INLINE_BRACKET_CHORD_RE.finditer(norm_line))
+    if bracket_matches:
+        edits = []
+        for m in bracket_matches:
+            new_tok = '[' + transpose_chord_token(m.group(1), m.group(2) or '', m.group(3), src_semi, dst_semi, use_flats, mode) + ']'
+            if new_tok != m.group(0):
+                edits.append((m.start(), m.end(), new_tok))
+        edits.sort(key=lambda e: (-e[0], -e[1]))
+        return edits
+
+    if not is_chord_line(line):
+        return []
+
+    matches = list(CHORD_TOKEN_RE.finditer(norm_line))
+    if not matches:
+        return []
+
+    edits: List[Tuple[int, int, str]] = []
+    cursor = 0
+    debt = 0
+
+    for m in matches:
+        gap_start, gap_end = cursor, m.start()
+        gap = line[gap_start:gap_end]
+        if '\t' in gap:
+            debt = 0
+        elif debt > 0:
+            m_spaces = re.search(r' {2,}', gap)
+            m_spaces_end = -1
+            if m_spaces:
+                consume = min(debt, (m_spaces.end() - m_spaces.start()) - 1)
+                if consume > 0:
+                    edits.append((gap_start + m_spaces.start(), gap_start + m_spaces.start() + consume, ''))
+                    debt -= consume
+                m_spaces_end = m_spaces.end()
+            if debt > 0 and m_spaces_end < len(gap):
+                m_trail = re.search(r' +$', gap)
+                trail = len(m_trail.group(0)) if m_trail else 0
+                consume = min(debt, max(0, trail - 1))
+                if consume > 0:
+                    edits.append((gap_end - consume, gap_end, ''))
+                    debt -= consume
+        elif debt < 0:
+            pad = -debt
+            pipe_pos = gap.find('｜') if '｜' in gap else gap.find('|')
+            insert_at = (gap_start + pipe_pos) if pipe_pos >= 0 else gap_end
+            edits.append((insert_at, insert_at, ' ' * pad))
+            debt = 0
+
+        old_tok = m.group(0)
+        new_tok = transpose_chord_token(m.group(1), m.group(2) or '', m.group(3), src_semi, dst_semi, use_flats, mode)
+        if new_tok != old_tok:
+            edits.append((m.start(), m.end(), new_tok))
+        debt += len(new_tok) - len(old_tok)
+        cursor = m.end()
+
+    edits.sort(key=lambda e: (-e[0], -e[1]))
+    return edits
+
+
+def compute_minimal_edits_for_paragraph(
+    full_text: str,
+    src_key: str,
+    dst_key: str,
+    accidental_pref: str = 'auto',
+    mode: str = 'chord'
+) -> List[Tuple[int, int, str]]:
+    if not re.search(r'[\r\n\x0b]', full_text):
+        return compute_minimal_edits_for_line(full_text, src_key, dst_key, accidental_pref, mode)
+    all_edits: List[Tuple[int, int, str]] = []
+    offset = 0
+    parts = re.split(r'([\r\n\x0b])', full_text)
+    for idx, part in enumerate(parts):
+        if idx % 2 == 0 and part.strip():
+            for s, e, txt in compute_minimal_edits_for_line(part, src_key, dst_key, accidental_pref, mode):
+                all_edits.append((s + offset, e + offset, txt))
+        offset += len(part)
+    all_edits.sort(key=lambda e: (-e[0], -e[1]))
+    return all_edits
+
+
 def transpose_docx(
     input_path: str,
     output_path: str,
@@ -383,77 +494,38 @@ def transpose_docx(
 ) -> Dict[str, str]:
     """
     Losslessly transpose a .docx chord sheet while keeping all XML styling,
-    embedded fonts, shading, alignments, and runs intact.
+    embedded fonts, shading, alignments, headers/footers, and runs intact.
     """
     with zipfile.ZipFile(input_path, 'r') as zin:
-        xml_bytes = zin.read('word/document.xml')
         namelist = zin.namelist()
-        other_files = {name: zin.read(name) for name in namelist if name != 'word/document.xml'}
+        all_files = {name: zin.read(name) for name in namelist}
 
-    # Parse XML while preserving original namespace prefixes
+    xml_bytes = all_files['word/document.xml']
+    header_footer_names = [
+        n for n in namelist
+        if re.match(r'^word/(?:header|footer)\d*\.xml$', n, re.IGNORECASE)
+    ]
+
+    # Extract header + body paragraph texts to detect source key if not provided
     ns = {'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'}
-    tree = ET.fromstring(xml_bytes)
-
-    # First pass: extract paragraph text to detect source key if not provided
-    paragraphs = tree.findall('.//w:p', ns)
-    para_texts = []
-    for p in paragraphs:
-        t_list = [t.text for t in p.findall('.//w:t', ns) if t.text]
-        para_texts.append(''.join(t_list))
+    para_texts: List[str] = []
+    for part_name in header_footer_names + ['word/document.xml']:
+        tree = ET.fromstring(all_files[part_name])
+        for p in tree.findall('.//w:p', ns):
+            t_list = [t.text for t in p.findall('.//w:t', ns) if t.text]
+            para_texts.append(''.join(t_list))
 
     detected_src = source_key or detect_key_from_lines(para_texts)
 
-    # Second pass: update paragraph text runs in-place
-    for p, full_text in zip(paragraphs, para_texts):
-        if not full_text.strip():
-            continue
-        new_full_text = transpose_line(full_text, detected_src, target_key, accidental_pref, mode)
-        if new_full_text == full_text:
-            continue
-
-        # Check if metadata line with multiple runs (e.g. Run 0: "Upper Room", Run 1: "/活水/D")
-        t_elems = p.findall('.//w:t', ns)
-        if not t_elems:
-            continue
-
-        if is_chord_line(full_text):
-            # If chord line has a single <w:t> or multiple <w:t>, put transposed text in first <w:t>
-            # or transpose per <w:t> if each <w:t> is self-contained
-            all_self_contained = True
-            for t_el in t_elems:
-                if t_el.text and ('/' in t_el.text and not CHORD_TOKEN_RE.search(t_el.text)):
-                    all_self_contained = False
-            if len(t_elems) == 1 or not all_self_contained:
-                t_elems[0].text = new_full_text
-                for extra_t in t_elems[1:]:
-                    extra_t.text = ''
-            else:
-                for t_el in t_elems:
-                    if t_el.text:
-                        t_el.text = transpose_line(t_el.text, detected_src, target_key, accidental_pref, mode)
-        else:
-            # Metadata line (e.g. "/活水/D"): transpose the last non-empty run so run-level fonts stay intact
-            replaced = False
-            for t_el in reversed(t_elems):
-                if t_el.text and t_el.text.strip():
-                    updated_run = transpose_line(t_el.text, detected_src, target_key, accidental_pref, mode)
-                    if updated_run != t_el.text:
-                        t_el.text = updated_run
-                        replaced = True
-                        break
-            if not replaced:
-                t_elems[0].text = new_full_text
-                for extra_t in t_elems[1:]:
-                    extra_t.text = ''
-
-    # Wait: ElementTree rewrites namespace prefixes unless we preserve them or operate on the XML string/DOM carefully.
-    # Let's make sure we preserve the exact XML declaration and namespaces of word/document.xml!
-    new_xml_bytes = transpose_docx_xml_bytes(xml_bytes, detected_src, target_key, accidental_pref, mode)
+    updated_files = dict(all_files)
+    for part_name in ['word/document.xml'] + header_footer_names:
+        updated_files[part_name] = transpose_docx_xml_bytes(
+            all_files[part_name], detected_src, target_key, accidental_pref, mode
+        )
 
     with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zout:
-        for name, data in other_files.items():
-            zout.writestr(name, data)
-        zout.writestr('word/document.xml', new_xml_bytes)
+        for name in namelist:
+            zout.writestr(name, updated_files[name])
 
     return {
         'source_key': detected_src,
@@ -471,20 +543,20 @@ def transpose_docx_xml_bytes(
     mode: str = 'chord'
 ) -> bytes:
     """
-    Operate directly on raw word/document.xml string so 100% of XML namespaces,
-    attributes, declarations, and formatting tags remain byte-for-byte untouched!
+    Operate directly on raw OOXML string via minimal per-run offset edits so 100% of
+    XML namespaces, attributes, run shading, fonts, colors, tabs, and line breaks remain intact.
     """
     xml_str = xml_bytes.decode('utf-8')
 
-    p_pattern = re.compile(r'(<w:p\b[^>]*>)(.*?)(</w:p>)', re.DOTALL)
-    t_pattern = re.compile(r'(<w:t(?:\s+[^>]*)?>)(.*?)(</w:t>)', re.DOTALL)
+    p_tag_re = re.compile(r'<w:p(?:\s[^>]*)?>|</w:p>')
+    token_re = re.compile(r'(<w:t(?:\s+[^>]*)?>)([\s\S]*?)(</w:t>)|<w:tab\b[^>]*\/?>|<w:br\b[^>]*\/?>|<w:cr\b[^>]*\/?>')
 
     def unescape_xml(s: str) -> str:
-        return (s.replace('&amp;', '&')
-                 .replace('&lt;', '<')
+        return (s.replace('&lt;', '<')
                  .replace('&gt;', '>')
                  .replace('&quot;', '"')
-                 .replace('&apos;', "'"))
+                 .replace('&apos;', "'")
+                 .replace('&amp;', '&'))
 
     def escape_xml(s: str) -> str:
         return (s.replace('&', '&amp;')
@@ -496,51 +568,101 @@ def transpose_docx_xml_bytes(
             return tag
         return re.sub(r'<w:t\b([^>]*)>', r'<w:t xml:space="preserve"\1>', tag)
 
-    def process_paragraph(p_match: re.Match) -> str:
-        p_open, p_body, p_close = p_match.group(1), p_match.group(2), p_match.group(3)
-        t_matches = list(t_pattern.finditer(p_body))
-        if not t_matches:
-            return p_match.group(0)
+    leaf_ranges = []
+    stack = []
+    for m in p_tag_re.finditer(xml_str):
+        if m.group(0).startswith('</'):
+            if stack:
+                open_start, body_start, has_child_p = stack.pop()
+                if not has_child_p:
+                    leaf_ranges.append((open_start, body_start, m.start(), m.end()))
+        else:
+            if stack:
+                stack[-1][2] = True
+            stack.append([m.start(), m.end(), False])
 
-        full_text = ''.join(unescape_xml(m.group(2)) for m in t_matches)
-        if not full_text.strip():
-            return p_match.group(0)
+    if not leaf_ranges:
+        return xml_bytes
+    leaf_ranges.sort(key=lambda r: r[0])
 
-        new_full_text = transpose_line(full_text, src_key, dst_key, accidental_pref, mode)
-        if new_full_text == full_text:
-            return p_match.group(0)
+    out_parts = []
+    cursor = 0
+    for open_start, body_start, body_end, close_end in leaf_ranges:
+        out_parts.append(xml_str[cursor:body_start])
+        p_body = xml_str[body_start:body_end]
 
-        # If single <w:t> in paragraph, replace directly
-        if len(t_matches) == 1:
-            m0 = t_matches[0]
-            new_t = ensure_xml_space_preserve(m0.group(1)) + escape_xml(new_full_text) + m0.group(3)
-            return p_open + p_body[:m0.start()] + new_t + p_body[m0.end():] + p_close
-
-        # If metadata line (not chord line), try updating the specific <w:t> run that has the key suffix
-        if not is_chord_line(full_text):
-            for idx in range(len(t_matches) - 1, -1, -1):
-                m_run = t_matches[idx]
-                run_txt = unescape_xml(m_run.group(2))
-                new_run_txt = transpose_line(run_txt, src_key, dst_key, accidental_pref, mode)
-                if new_run_txt != run_txt:
-                    new_t = ensure_xml_space_preserve(m_run.group(1)) + escape_xml(new_run_txt) + m_run.group(3)
-                    return p_open + p_body[:m_run.start()] + new_t + p_body[m_run.end():] + p_close
-
-        # Otherwise place full transposed text in the first <w:t> and empty subsequent <w:t> in this paragraph
-        pieces = []
-        last_idx = 0
-        for idx, m_run in enumerate(t_matches):
-            pieces.append(p_body[last_idx:m_run.start()])
-            if idx == 0:
-                pieces.append(ensure_xml_space_preserve(m_run.group(1)) + escape_xml(new_full_text) + m_run.group(3))
+        tokens = []
+        full_text_parts = []
+        offset = 0
+        for tm in token_re.finditer(p_body):
+            if tm.group(1) is not None:
+                txt = unescape_xml(tm.group(2))
+                tokens.append({
+                    'type': 'text', 'text': txt,
+                    'start': offset, 'end': offset + len(txt),
+                    'match_start': tm.start(), 'match_end': tm.end(),
+                    'open_tag': tm.group(1), 'close_tag': tm.group(3),
+                    'modified': False
+                })
+                full_text_parts.append(txt)
+                offset += len(txt)
+            elif tm.group(0).startswith('<w:tab'):
+                tokens.append({'type': 'tab', 'start': offset, 'end': offset + 1})
+                full_text_parts.append('\t')
+                offset += 1
             else:
-                pieces.append(m_run.group(1) + m_run.group(3))
-            last_idx = m_run.end()
-        pieces.append(p_body[last_idx:])
-        return p_open + ''.join(pieces) + p_close
+                tokens.append({'type': 'br', 'start': offset, 'end': offset + 1})
+                full_text_parts.append('\n')
+                offset += 1
 
-    updated_xml = p_pattern.sub(process_paragraph, xml_str)
-    return updated_xml.encode('utf-8')
+        full_text = ''.join(full_text_parts)
+        edits = compute_minimal_edits_for_paragraph(full_text, src_key, dst_key, accidental_pref, mode) if full_text.strip() else []
+
+        if not edits:
+            out_parts.append(p_body)
+        else:
+            for ed_start, ed_end, ed_text in edits:
+                if ed_end == ed_start:
+                    target = next((t for t in tokens if t['type'] == 'text' and t['start'] <= ed_start < t['end']), None)
+                    if target is None:
+                        target = next((t for t in reversed(tokens) if t['type'] == 'text' and t['end'] == ed_start), None)
+                    if target is None:
+                        target = next((t for t in tokens if t['type'] == 'text' and t['start'] == ed_start), None)
+                    if target is not None:
+                        local_pos = len(target['text']) if ed_start >= target['end'] else max(0, min(len(target['text']), ed_start - target['start']))
+                        target['text'] = target['text'][:local_pos] + ed_text + target['text'][local_pos:]
+                        target['modified'] = True
+                elif ed_end > ed_start:
+                    overlapping = [t for t in tokens if t['end'] > ed_start and t['start'] < ed_end]
+                    if not overlapping or any(t['type'] != 'text' for t in overlapping):
+                        continue
+                    is_first = True
+                    for tok in overlapping:
+                        orig_len = tok['end'] - tok['start']
+                        local_s = max(0, ed_start - tok['start'])
+                        local_e = min(orig_len, ed_end - tok['start'])
+                        if is_first:
+                            tok['text'] = tok['text'][:local_s] + ed_text + tok['text'][local_e:]
+                            is_first = False
+                        else:
+                            tok['text'] = tok['text'][:local_s] + tok['text'][local_e:]
+                        tok['modified'] = True
+
+            rebuilt = []
+            p_cur = 0
+            for tok in tokens:
+                if tok['type'] == 'text' and tok['modified']:
+                    rebuilt.append(p_body[p_cur:tok['match_start']])
+                    rebuilt.append(ensure_xml_space_preserve(tok['open_tag']) + escape_xml(tok['text']) + tok['close_tag'])
+                    p_cur = tok['match_end']
+            rebuilt.append(p_body[p_cur:])
+            out_parts.append(''.join(rebuilt))
+
+        out_parts.append(xml_str[body_end:close_end])
+        cursor = close_end
+
+    out_parts.append(xml_str[cursor:])
+    return ''.join(out_parts).encode('utf-8')
 
 
 def main():
