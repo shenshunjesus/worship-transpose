@@ -1207,24 +1207,40 @@ G - - - | A - - -
     const SINGLE_CHORD_REGEX = /^([A-G][#b♯♭]?)((?:maj|min|m|M|dim|aug|sus|add|no|[0-9]|[\+\^\(\)])*)(?:\/([A-G][#b♯♭]?))?$/;
     const INLINE_BRACKET_REGEX = /\[([A-G][#b♯♭]?)((?:maj|min|m|M|dim|aug|sus|add|no|[0-9]|[\+\^\(\)])*)(?:\/([A-G][#b♯♭]?))?\]/g;
 
+    function normalizeFullwidthForMatch(str) {
+      let out = "";
+      for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i);
+        if (code >= 0xFF01 && code <= 0xFF5E) {
+          out += String.fromCharCode(code - 0xFEE0);
+        } else if (code === 0x3000 || code === 0x00A0) {
+          out += " ";
+        } else {
+          out += str[i];
+        }
+      }
+      return out;
+    }
+
     function isSectionHeader(line) {
-      const s = line.trim().toLowerCase().replace(/:$/, "");
+      const s = normalizeFullwidthForMatch(line).trim().toLowerCase().replace(/:$/, "");
+      if (!s) return false;
       if (SECTION_HEADERS.has(s)) return true;
-      return /^(intro|verse|chorus|bridge|tag|outro|interlude|pre-?chorus)\s*\d*$/i.test(s);
+      return /^(?:->)?\s*(intro|verse|chorus|bridge|tag|outro|interlude|pre-?chorus|v|pc|c|b)\s*\d*$/i.test(s);
     }
 
     function isChordLine(line) {
-      const stripped = line.trim();
-      if (!stripped || isSectionHeader(stripped)) return false;
-      const chineseCount = (stripped.match(/[\u4e00-\u9fff]/g) || []).length;
-      const tokens = stripped.split(/[\s｜|\-–—/、,，\(\)\[\]]+/).filter(Boolean);
+      const norm = normalizeFullwidthForMatch(line).trim();
+      if (!norm || isSectionHeader(norm)) return false;
+      const chineseCount = (norm.match(/[\u4e00-\u9fff]/g) || []).length;
+      const tokens = norm.split(/[\s｜|\-–—―─_\/、,，\(\)\[\]\*]+/).filter(Boolean);
       if (tokens.length === 0) return false;
 
       let chordMatches = 0;
       for (const tok of tokens) {
         if (SINGLE_CHORD_REGEX.test(tok)) chordMatches++;
       }
-      const hasGrid = stripped.includes("｜") || stripped.includes("|") || stripped.includes("- -");
+      const hasGrid = /[｜|]/.test(norm) || /[-–—―─]\s*[-–—―─]/.test(norm);
       if (hasGrid && chordMatches >= 1) return true;
       if (chineseCount > 0 && !hasGrid) return false;
       if (tokens.length <= 16 && (chordMatches / tokens.length) >= 0.6) {
@@ -1235,27 +1251,108 @@ G - - - | A - - -
       return false;
     }
 
-    function detectSourceKey(lines) {
-      for (const line of lines.slice(0, 8)) {
-        const m = line.trim().match(/(?:\/|Key\s*[:：]\s*|調性\s*[:：]\s*)([A-G][#b♯♭]?m?)\s*$/i);
-        if (m) {
-          const k = m[1];
-          const root = k[0].toUpperCase() + k.slice(1).replace("m", "");
-          if (NOTE_TO_SEMI[root] !== undefined) return root;
+    function matchMetadataKey(line) {
+      if (!line || !line.trim() || isChordLine(line)) return null;
+      const norm = normalizeFullwidthForMatch(line);
+
+      let m = norm.match(/(?:^|[\s\/|(\[（【,;，；])((?:原調|調性|[Kk][Ee][Yy])\s*[:：]?\s*)([A-G][#b♯♭]?m?)(?=$|[\s\/|)\]）】.,;，；])/);
+      if (m) {
+        const keyStr = m[2];
+        const root = keyStr[0].toUpperCase() + keyStr.slice(1).replace(/m$/, "");
+        if (NOTE_TO_SEMI[root] !== undefined) {
+          const start = m.index + (m[0].length - keyStr.length);
+          return { start, end: start + keyStr.length, key: keyStr, root };
         }
       }
-      const found = [];
+
+      m = norm.match(/(?:^|[\s\/|(\[（【,;，；])([A-G][#b♯♭]?m?)(\s*(?:[Kk][Ee][Yy]|調))(?=$|[\s\/|)\]）】.,;，；])/);
+      if (m) {
+        const keyStr = m[1];
+        const suffix = m[2];
+        const root = keyStr[0].toUpperCase() + keyStr.slice(1).replace(/m$/, "");
+        const isEnglishSentence = !/[\u4e00-\u9fff\/|：:]/.test(norm) && (norm.match(/[A-Za-z]{2,}/g) || []).length >= 3;
+        if (NOTE_TO_SEMI[root] !== undefined && !isEnglishSentence) {
+          const start = m.index + (m[0].length - keyStr.length - suffix.length);
+          return { start, end: start + keyStr.length, key: keyStr, root };
+        }
+      }
+
+      m = norm.match(/(\/\s*)([A-G][#b♯♭]?m?)(\s*)$/);
+      if (m) {
+        const keyStr = m[2];
+        const root = keyStr[0].toUpperCase() + keyStr.slice(1).replace(/m$/, "");
+        if (NOTE_TO_SEMI[root] !== undefined) {
+          const start = m.index + m[1].length;
+          return { start, end: start + keyStr.length, key: keyStr, root };
+        }
+      }
+
+      return null;
+    }
+
+    function detectKeyFromTitle(docTitle) {
+      if (!docTitle) return null;
+      const norm = normalizeFullwidthForMatch(String(docTitle)).trim();
+      const meta = matchMetadataKey(norm);
+      if (meta) return meta.root;
+      const m = norm.match(/(?:^|[\s\-_\/(])([A-G][#b♯♭]?m?)(?:\s*(?:[Kk][Ee][Yy]|調))?[)]?\s*$/);
+      if (m) {
+        const k = m[1];
+        const root = k[0].toUpperCase() + k.slice(1).replace(/m$/, "");
+        if (NOTE_TO_SEMI[root] !== undefined) return root;
+      }
+      return null;
+    }
+
+    function detectSourceKey(lines, docTitle = "") {
+      for (const line of lines.slice(0, 12)) {
+        const meta = matchMetadataKey(line);
+        if (meta) return meta.root;
+      }
+      const titleKey = detectKeyFromTitle(docTitle);
+      if (titleKey) return titleKey;
+
+      const chords = [];
       for (const line of lines) {
         if (isChordLine(line)) {
+          const norm = normalizeFullwidthForMatch(line);
           let m;
           CHORD_TOKEN_REGEX.lastIndex = 0;
-          while ((m = CHORD_TOKEN_REGEX.exec(line)) !== null) {
-            found.push(m[1]);
+          while ((m = CHORD_TOKEN_REGEX.exec(norm)) !== null) {
+            const semi = NOTE_TO_SEMI[m[1]];
+            if (semi !== undefined) {
+              const q = m[2] || "";
+              const isMinor = /^m(?!aj)/i.test(q) || /^min/i.test(q);
+              chords.push({ root: m[1], semi, isMinor });
+            }
           }
         }
       }
-      if (found.length > 0) return found[found.length - 1];
-      return "D";
+      if (chords.length === 0) return "D";
+
+      let bestKeySemi = chords[chords.length - 1].semi;
+      let bestScore = -1e9;
+      for (let k = 0; k < 12; k++) {
+        let score = 0;
+        for (const c of chords) {
+          const diff = (c.semi - k + 12) % 12;
+          if (!c.isMinor && diff === 0) score += 3;
+          else if (!c.isMinor && (diff === 5 || diff === 7)) score += 2;
+          else if (c.isMinor && diff === 9) score += 2;
+          else if (c.isMinor && (diff === 2 || diff === 4)) score += 1;
+          else score -= 2;
+        }
+        const first = chords[0];
+        const last = chords[chords.length - 1];
+        if (!last.isMinor && last.semi === k) score += 3;
+        if (!first.isMinor && first.semi === k) score += 1.5;
+        if (score > bestScore) {
+          bestScore = score;
+          bestKeySemi = k;
+        }
+      }
+      const PREFERRED_NAMES = ["C", "Db", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+      return PREFERRED_NAMES[bestKeySemi];
     }
 
     function shouldUseFlats(targetKey, accPref) {
@@ -1301,24 +1398,29 @@ G - - - | A - - -
       const effectiveKey = capoInfo ? capoInfo.playKey : dstKey;
       const dstSemi = NOTE_TO_SEMI[effectiveKey] ?? srcSemi;
       const useFlats = shouldUseFlats(effectiveKey, accPref);
+      const normLine = normalizeFullwidthForMatch(line);
 
-      // Check metadata line ending with /Key or Key: X
-      const metaMatch = line.match(/(\/|Key\s*[:：]\s*|調性\s*[:：]\s*)([A-G][#b♯♭]?m?)(\s*)$/);
-      if (metaMatch && !isChordLine(line)) {
-        const idx = metaMatch.index + metaMatch[1].length;
+      // Check metadata line (e.g. "G key / 可萌 / 蛤 / 68拍", "JPCC/約書亞/G")
+      const metaMatch = matchMetadataKey(line);
+      if (metaMatch) {
         let label = dstKey;
         if (mode === "number") label = `${dstKey} (級數)`;
         else if (capoInfo && capoInfo.capo > 0) label = `${dstKey} (Capo ${capoInfo.capo} Play ${capoInfo.playKey})`;
-        return line.slice(0, idx) + label + metaMatch[3];
+        return line.slice(0, metaMatch.start) + label + line.slice(metaMatch.end);
       }
 
-      // Check inline bracket chords [G]
+      // Check inline bracket chords [G] (including fullwidth ［Ｇ］)
       INLINE_BRACKET_REGEX.lastIndex = 0;
-      if (INLINE_BRACKET_REGEX.test(line)) {
-        INLINE_BRACKET_REGEX.lastIndex = 0;
-        return line.replace(INLINE_BRACKET_REGEX, (_, r, q, b) => {
-          return "[" + transposeChordParts(r, q || "", b, srcSemi, dstSemi, useFlats, mode) + "]";
-        });
+      const bracketMatches = [...normLine.matchAll(INLINE_BRACKET_REGEX)];
+      if (bracketMatches.length > 0) {
+        let out = "";
+        let cur = 0;
+        for (const m of bracketMatches) {
+          out += line.slice(cur, m.index);
+          out += "[" + transposeChordParts(m[1], m[2] || "", m[3], srcSemi, dstSemi, useFlats, mode) + "]";
+          cur = m.index + m[0].length;
+        }
+        return out + line.slice(cur);
       }
 
       if (!isChordLine(line)) return line;
@@ -1328,7 +1430,7 @@ G - - - | A - - -
       // adjusts gap spaces to compensate for chord token length changes,
       // and keeps measure lines ｜ and | strictly locked to their original visual columns.
       CHORD_TOKEN_REGEX.lastIndex = 0;
-      const matches = [...line.matchAll(CHORD_TOKEN_REGEX)];
+      const matches = [...normLine.matchAll(CHORD_TOKEN_REGEX)];
       if (matches.length === 0) return line;
 
       let out = "";
@@ -2002,7 +2104,7 @@ G - - - | A - - -
           elLoadedFileMode.textContent = "智慧 .docx 排版生成模式";
         }
         elRawEditor.value = state.rawText;
-        const detected = detectSourceKey(state.rawText.split(/\r?\n/));
+        const detected = detectSourceKey(state.rawText.split(/\r?\n/), file.name.replace(/\.[^.]+$/, ""));
         state.srcKey = detected;
         state.dstKey = detected;
         state.capoOverride = null;
@@ -2268,19 +2370,18 @@ G - - - | A - - -
       const effectiveKey = capoInfo ? capoInfo.playKey : dstKey;
       const dstSemi = NOTE_TO_SEMI[effectiveKey] ?? srcSemi;
       const useFlats = shouldUseFlats(effectiveKey, accPref);
+      const normLine = normalizeFullwidthForMatch(line);
 
-      const metaMatch = line.match(/(\/|Key\s*[:：]\s*|調性\s*[:：]\s*)([A-G][#b♯♭]?m?)(\s*)$/);
-      if (metaMatch && !isChordLine(line)) {
-        const start = metaMatch.index + metaMatch[1].length;
-        const end = start + metaMatch[2].length;
+      const metaMatch = matchMetadataKey(line);
+      if (metaMatch) {
         let label = dstKey;
         if (mode === "number") label = `${dstKey} (級數)`;
         else if (capoInfo && capoInfo.capo > 0) label = `${dstKey} (Capo ${capoInfo.capo} Play ${capoInfo.playKey})`;
-        return label !== metaMatch[2] ? [{ start, end, text: label }] : [];
+        return label !== metaMatch.key ? [{ start: metaMatch.start, end: metaMatch.end, text: label }] : [];
       }
 
       INLINE_BRACKET_REGEX.lastIndex = 0;
-      const bracketMatches = [...line.matchAll(INLINE_BRACKET_REGEX)];
+      const bracketMatches = [...normLine.matchAll(INLINE_BRACKET_REGEX)];
       if (bracketMatches.length > 0) {
         const edits = [];
         for (const m of bracketMatches) {
@@ -2294,7 +2395,7 @@ G - - - | A - - -
       if (!isChordLine(line)) return [];
 
       CHORD_TOKEN_REGEX.lastIndex = 0;
-      const matches = [...line.matchAll(CHORD_TOKEN_REGEX)];
+      const matches = [...normLine.matchAll(CHORD_TOKEN_REGEX)];
       if (matches.length === 0) return [];
 
       const edits = [];
@@ -2510,11 +2611,15 @@ G - - - | A - - -
 
           try {
             let targetDocId = sourceDocId;
+            let origDocName = "";
             if (apiMode === "copy") {
               btn.textContent = "正在建立安全複本...";
               const metaRes = await fetch(`https://www.googleapis.com/drive/v3/files/${sourceDocId}?fields=name`, { headers });
               const metaJson = await metaRes.json();
-              const baseName = (metaJson.name || "歌譜").replace(/\s+[A-G][#b♯♭]?m?$/, "");
+              origDocName = metaJson.name || "歌譜";
+              const baseName = origDocName
+                .replace(/(?:\s*[\(（]\s*[A-GＡ-Ｇ][#b♯♭＃ｂ]?m?(?:\s*(?:key|調))?\s*[\)）]|\s+[A-GＡ-Ｇ][#b♯♭＃ｂ]?m?(?:\s*(?:key|調))?)\s*$/i, "")
+                .trim() || origDocName;
               const copyRes = await fetch(`https://www.googleapis.com/drive/v3/files/${sourceDocId}/copy`, {
                 method: "POST",
                 headers,
@@ -2529,6 +2634,7 @@ G - - - | A - - -
             const docRes = await fetch(`https://docs.googleapis.com/v1/documents/${targetDocId}`, { headers });
             const docJson = await docRes.json();
             if (!docRes.ok) throw new Error(docJson.error?.message || "讀取 Google Docs 失敗");
+            if (!origDocName) origDocName = docJson.title || "";
 
             const paragraphs = [];
             collectDocParagraphsForApi(docJson.body?.content, paragraphs);
@@ -2538,7 +2644,7 @@ G - - - | A - - -
               const raw = (p.elements || []).map(e => e.textRun?.content || "").join("").replace(/\n$/, "");
               for (const sub of raw.split(/[\r\n\u000b]+/)) allTexts.push(sub);
             }
-            const detectedSrc = state.rawText.trim() ? state.srcKey : detectSourceKey(allTexts);
+            const detectedSrc = state.rawText.trim() ? state.srcKey : detectSourceKey(allTexts, origDocName);
 
             const styleKeys = ["fontSize", "backgroundColor", "weightedFontFamily", "foregroundColor", "bold", "italic", "underline", "strikethrough"];
             const buildCleanStyle = (origStyle) => {

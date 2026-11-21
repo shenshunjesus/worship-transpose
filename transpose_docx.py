@@ -84,29 +84,43 @@ def semitone_to_number(semitone: int, key_semitone: int, use_flats: bool = True)
     return SCALE_DEGREES_FLAT[diff] if use_flats else SCALE_DEGREES_SHARP[diff]
 
 
+def normalize_fullwidth_for_match(s: str) -> str:
+    """1-to-1 fullwidth ASCII -> halfwidth ASCII normalization preserving exact character offsets."""
+    out = []
+    for ch in s:
+        code = ord(ch)
+        if 0xFF01 <= code <= 0xFF5E:
+            out.append(chr(code - 0xFEE0))
+        elif code in (0x3000, 0x00A0):
+            out.append(' ')
+        else:
+            out.append(ch)
+    return ''.join(out)
+
+
 def is_chord_line(line: str) -> bool:
     """
     Determine whether a line is a chord progression line (like 'G - Bm - ｜D - - -')
     rather than normal English/Chinese lyrics or section headers.
     """
-    stripped = line.strip()
-    if not stripped:
+    norm = normalize_fullwidth_for_match(line).strip()
+    if not norm:
         return False
-    low = stripped.lower().rstrip(':')
-    if low in SECTION_HEADERS or re.match(r'^(intro|verse|chorus|bridge|tag|outro|interlude|pre-?chorus)\s*\d*$', low):
+    low = norm.lower().rstrip(':')
+    if low in SECTION_HEADERS or re.match(r'^(?:->)?\s*(intro|verse|chorus|bridge|tag|outro|interlude|pre-?chorus|v|pc|c|b)\s*\d*$', low):
         return False
     # If line contains Chinese characters and has no barlines or beat dashes, check carefully
-    chinese_chars = len(re.findall(r'[\u4e00-\u9fff]', stripped))
+    chinese_chars = len(re.findall(r'[\u4e00-\u9fff]', norm))
     # Tokenize by whitespace and barlines/separators
-    tokens = [t for t in re.split(r'[\s｜|\-–—/、,，\(\)\[\]]+', stripped) if t]
+    tokens = [t for t in re.split(r'[\s｜|\-–—―─_\/、,，\(\)\[\]\*]+', norm) if t]
     if not tokens:
         return False
     chord_matches = 0
     for tok in tokens:
         if CHORD_TOKEN_RE.fullmatch(tok):
             chord_matches += 1
-    # Check if line has rhythmic markers like '- - -' or '｜' or '|'
-    has_grid_markers = ('｜' in stripped or '|' in stripped or '- -' in stripped)
+    # Check if line has rhythmic markers like '- - -', '— —', '｜', or '|'
+    has_grid_markers = bool(re.search(r'[｜|]', norm) or re.search(r'[-–—―─]\s*[-–—―─]', norm))
     if has_grid_markers and chord_matches >= 1:
         return True
     if chinese_chars > 0 and not has_grid_markers:
@@ -121,27 +135,86 @@ def is_chord_line(line: str) -> bool:
     return False
 
 
+def match_metadata_key(line: str) -> Optional[Tuple[int, int, str, str]]:
+    """
+    Detect header metadata key (e.g. 'G key / 可萌 / 68拍', 'Key: D', 'JPCC/約書亞/G').
+    Returns (start, end, key_str, root) aligned 1:1 with `line`, or None.
+    """
+    if not line or not line.strip() or is_chord_line(line):
+        return None
+    norm = normalize_fullwidth_for_match(line)
+
+    m = re.search(r'(?:^|[\s/|(\[（【,;，；])((?:原調|調性|[Kk][Ee][Yy])\s*[:：]?\s*)([A-G][#b♯♭]?m?)(?=$|[\s/|)\]）】.,;，；])', norm)
+    if m:
+        key_str = m.group(2)
+        root = key_str[0].upper() + re.sub(r'm$', '', key_str[1:])
+        if root in NOTE_TO_SEMITONE:
+            return (m.start(2), m.end(2), key_str, root)
+
+    m = re.search(r'(?:^|[\s/|(\[（【,;，；])([A-G][#b♯♭]?m?)(\s*(?:[Kk][Ee][Yy]|調))(?=$|[\s/|)\]）】.,;，；])', norm)
+    if m:
+        key_str = m.group(1)
+        root = key_str[0].upper() + re.sub(r'm$', '', key_str[1:])
+        is_eng_sentence = (not re.search(r'[\u4e00-\u9fff/|：:]', norm)) and len(re.findall(r'[A-Za-z]{2,}', norm)) >= 3
+        if root in NOTE_TO_SEMITONE and not is_eng_sentence:
+            return (m.start(1), m.end(1), key_str, root)
+
+    m = re.search(r'(/\s*)([A-G][#b♯♭]?m?)(\s*)$', norm)
+    if m:
+        key_str = m.group(2)
+        root = key_str[0].upper() + re.sub(r'm$', '', key_str[1:])
+        if root in NOTE_TO_SEMITONE:
+            return (m.start(2), m.end(2), key_str, root)
+
+    return None
+
+
 def detect_key_from_lines(lines: List[str]) -> str:
     """
-    Auto-detect original key from metadata line (e.g. 'Upper Room/活水/D' or 'Key: D')
-    or fallback to analyzing first/last chords.
+    Auto-detect original key from metadata line (e.g. 'G key / 可萌 / 68拍', 'Upper Room/活水/D', 'Key: D')
+    or fallback to diatonic tonic scoring across all chords.
     """
-    for line in lines[:8]:
-        s = line.strip()
-        # Match patterns like 'Upper Room/活水/D' or 'Key: D' or '調性：D'
-        m = re.search(r'(?:/|Key\s*[:：]\s*|調性\s*[:：]\s*)([A-G][#b♯♭]?m?)\s*$', s, re.IGNORECASE)
-        if m:
-            k = m.group(1)
-            return k[0].upper() + k[1:]
-    # Fallback: collect all chords
+    for line in lines[:12]:
+        meta = match_metadata_key(line)
+        if meta:
+            return meta[3]
+    # Fallback: collect all chords (including fullwidth)
     chords = []
     for line in lines:
         if is_chord_line(line):
-            for m in CHORD_TOKEN_RE.finditer(line):
-                chords.append(m.group(1) + ('m' if m.group(2).startswith('m') and not m.group(2).startswith('maj') else ''))
-    if chords:
-        return chords[-1].rstrip('m') if not chords[-1].endswith('m') else chords[0]
-    return 'D'
+            norm = normalize_fullwidth_for_match(line)
+            for m in CHORD_TOKEN_RE.finditer(norm):
+                semi = NOTE_TO_SEMITONE.get(m.group(1))
+                if semi is not None:
+                    q = m.group(2) or ''
+                    is_minor = bool(re.match(r'^m(?!aj)|^min', q, re.IGNORECASE))
+                    chords.append((semi, is_minor))
+    if not chords:
+        return 'D'
+    best_k, best_score = chords[-1][0], -1e9
+    for k in range(12):
+        score = 0.0
+        for semi, is_minor in chords:
+            diff = (semi - k) % 12
+            if not is_minor and diff == 0:
+                score += 3
+            elif not is_minor and diff in (5, 7):
+                score += 2
+            elif is_minor and diff == 9:
+                score += 2
+            elif is_minor and diff in (2, 4):
+                score += 1
+            else:
+                score -= 2
+        if not chords[-1][1] and chords[-1][0] == k:
+            score += 3
+        if not chords[0][1] and chords[0][0] == k:
+            score += 1.5
+        if score > best_score:
+            best_score = score
+            best_k = k
+    preferred = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B']
+    return preferred[best_k]
 
 
 def transpose_chord_token(
@@ -199,21 +272,28 @@ def transpose_line(
     dst_semi = NOTE_TO_SEMITONE.get(dst_key.rstrip('m'), src_semi)
     use_flats = should_use_flats(dst_key, accidental_pref)
 
-    # Check if this is a metadata line ending with '/<src_key>' like 'Upper Room/活水/D'
-    meta_match = re.search(r'(/|Key\s*[:：]\s*|調性\s*[:：]\s*)([A-G][#b♯♭]?m?)(\s*)$', line)
-    if meta_match and not is_chord_line(line):
-        prefix_end = meta_match.start(2)
-        suffix_start = meta_match.end(2)
+    norm_line = normalize_fullwidth_for_match(line)
+
+    # Check if this is a metadata line (e.g. 'G key / 可萌 / 68拍', 'Upper Room/活水/D')
+    meta_match = match_metadata_key(line)
+    if meta_match:
+        prefix_end, suffix_start, _, _ = meta_match
         label = f"{dst_key} (級數)" if mode == 'number' else dst_key
         return line[:prefix_end] + label + line[suffix_start:]
 
-    # Check if line has inline bracketed chords like [G]我想認識[Bm]祢
-    if INLINE_BRACKET_CHORD_RE.search(line):
-        def bracket_repl(m: re.Match) -> str:
+    # Check if line has inline bracketed chords like [G]我想認識[Bm]祢 (or fullwidth ［Ｇ］)
+    bracket_matches = list(INLINE_BRACKET_CHORD_RE.finditer(norm_line))
+    if bracket_matches:
+        out_parts = []
+        cur = 0
+        for m in bracket_matches:
+            out_parts.append(line[cur:m.start()])
             root, quality, bass = m.group(1), m.group(2) or '', m.group(3)
             transposed = transpose_chord_token(root, quality, bass, src_semi, dst_semi, use_flats, mode)
-            return f"[{transposed}]"
-        return INLINE_BRACKET_CHORD_RE.sub(bracket_repl, line)
+            out_parts.append(f"[{transposed}]")
+            cur = m.end()
+        out_parts.append(line[cur:])
+        return ''.join(out_parts)
 
     if not is_chord_line(line):
         return line
@@ -222,7 +302,7 @@ def transpose_line(
         root, quality, bass = m.group(1), m.group(2) or '', m.group(3)
         return transpose_chord_token(root, quality, bass, src_semi, dst_semi, use_flats, mode)
 
-    matches = list(CHORD_TOKEN_RE.finditer(line))
+    matches = list(CHORD_TOKEN_RE.finditer(norm_line))
     if not matches:
         return line
 

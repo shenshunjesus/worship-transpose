@@ -63,25 +63,45 @@ function doGet() {
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
+/**
+ * 將全形 ASCII（Ａ-Ｚ、ａ-ｚ、０-９、＃、／、｜、－ 等 U+FF01..U+FF5E）與全形空白/不換行空白
+ * 1 對 1 正規化為半形 ASCII，確保回傳字串長度與原字串 100% 相同（字元索引偏移量完全不變）。
+ * 解決中文輸入法誤打全形和弦（如 Ｇ、Ｃ、Ｅｍ、Ｇ/B、Ｄ／Ｆ＃）無法被偵測與轉調的問題。
+ */
+function normalizeFullwidthForMatch_(str) {
+  let out = '';
+  for (let i = 0; i < str.length; i++) {
+    const code = str.charCodeAt(i);
+    if (code >= 0xFF01 && code <= 0xFF5E) {
+      out += String.fromCharCode(code - 0xFEE0);
+    } else if (code === 0x3000 || code === 0x00A0) {
+      out += ' ';
+    } else {
+      out += str[i];
+    }
+  }
+  return out;
+}
+
 function isSectionHeader_(line) {
-  const s = line.trim().toLowerCase().replace(/:$/, '');
+  const s = normalizeFullwidthForMatch_(line).trim().toLowerCase().replace(/:$/, '');
   if (!s) return false;
   if (SECTION_HEADERS.has(s)) return true;
-  return /^(intro|verse|chorus|bridge|tag|outro|interlude|pre-?chorus|v)\s*\d*$/i.test(s);
+  return /^(?:->)?\s*(intro|verse|chorus|bridge|tag|outro|interlude|pre-?chorus|v|pc|c|b)\s*\d*$/i.test(s);
 }
 
 function isChordLine_(line) {
-  const stripped = line.trim();
-  if (!stripped || isSectionHeader_(stripped)) return false;
-  const chineseCount = (stripped.match(/[\u4e00-\u9fff]/g) || []).length;
-  const tokens = stripped.split(/[\s｜|\-–—_\/、,，\(\)\[\]]+/).filter(Boolean);
+  const norm = normalizeFullwidthForMatch_(line).trim();
+  if (!norm || isSectionHeader_(norm)) return false;
+  const chineseCount = (norm.match(/[\u4e00-\u9fff]/g) || []).length;
+  const tokens = norm.split(/[\s｜|\-–—―─_\/、,，\(\)\[\]\*]+/).filter(Boolean);
   if (tokens.length === 0) return false;
 
   let chordMatches = 0;
   for (const tok of tokens) {
     if (SINGLE_CHORD_REGEX.test(tok)) chordMatches++;
   }
-  const hasGrid = stripped.includes('｜') || stripped.includes('|') || stripped.includes('- -');
+  const hasGrid = /[｜|]/.test(norm) || /[-–—―─]\s*[-–—―─]/.test(norm);
   if (hasGrid && chordMatches >= 1) return true;
   if (chineseCount > 0 && !hasGrid) return false;
   if (tokens.length <= 16 && (chordMatches / tokens.length) >= 0.6) {
@@ -129,57 +149,158 @@ function transposeChordParts_(root, quality, bass, srcSemi, dstSemi, useFlats, m
   return chordStr;
 }
 
-function detectKeyFromParagraphs_(texts) {
+/**
+ * 偵測譜頭調性資訊行（回傳 { start, end, key, root }，座標與原字串 1:1 對齊）
+ * 支援：
+ * - "G key / 可萌 / 蛤 / 68拍"、"Gkey / ..."、"Ｇ key / ..."、"Eb調 / 約書亞"
+ * - "Key: G / 68拍"、"Key：Eb"、"調性：D"、"原調：Bb"
+ * - "JPCC/約書亞/G"、"Upper Room/活水/D"
+ */
+function matchMetadataKey_(line) {
+  if (!line || !line.trim() || isChordLine_(line)) return null;
+  const norm = normalizeFullwidthForMatch_(line);
+
+  // 1. 前綴標記：Key: G / Key：G / 調性：G / 原調：G（可出現在行中任意位置）
+  let m = norm.match(/(?:^|[\s\/|(\[（【,;，；])((?:原調|調性|[Kk][Ee][Yy])\s*[:：]?\s*)([A-G][#b♯♭]?m?)(?=$|[\s\/|)\]）】.,;，；])/);
+  if (m) {
+    const keyStr = m[2];
+    const root = keyStr[0].toUpperCase() + keyStr.slice(1).replace(/m$/, '');
+    if (NOTE_TO_SEMI[root] !== undefined) {
+      const start = m.index + (m[0].length - keyStr.length);
+      return { start, end: start + keyStr.length, key: keyStr, root };
+    }
+  }
+
+  // 2. 後綴標記：G key / Gkey / G Key / G調 / Eb 調（可出現在行中任意位置）
+  m = norm.match(/(?:^|[\s\/|(\[（【,;，；])([A-G][#b♯♭]?m?)(\s*(?:[Kk][Ee][Yy]|調))(?=$|[\s\/|)\]）】.,;，；])/);
+  if (m) {
+    const keyStr = m[1];
+    const suffix = m[2];
+    const root = keyStr[0].toUpperCase() + keyStr.slice(1).replace(/m$/, '');
+    const isEnglishSentence = !/[\u4e00-\u9fff\/|：:]/.test(norm) && (norm.match(/[A-Za-z]{2,}/g) || []).length >= 3;
+    if (NOTE_TO_SEMI[root] !== undefined && !isEnglishSentence) {
+      const start = m.index + (m[0].length - keyStr.length - suffix.length);
+      return { start, end: start + keyStr.length, key: keyStr, root };
+    }
+  }
+
+  // 3. 行尾斜線標記：JPCC/約書亞/G、Upper Room/活水/D
+  m = norm.match(/(\/\s*)([A-G][#b♯♭]?m?)(\s*)$/);
+  if (m) {
+    const keyStr = m[2];
+    const root = keyStr[0].toUpperCase() + keyStr.slice(1).replace(/m$/, '');
+    if (NOTE_TO_SEMI[root] !== undefined) {
+      const start = m.index + m[1].length;
+      return { start, end: start + keyStr.length, key: keyStr, root };
+    }
+  }
+
+  return null;
+}
+
+function detectKeyFromTitle_(docTitle) {
+  if (!docTitle) return null;
+  const norm = normalizeFullwidthForMatch_(String(docTitle)).trim();
+  const meta = matchMetadataKey_(norm);
+  if (meta) return meta.root;
+  const m = norm.match(/(?:^|[\s\-_\/(])([A-G][#b♯♭]?m?)(?:\s*(?:[Kk][Ee][Yy]|調))?[)]?\s*$/);
+  if (m) {
+    const k = m[1];
+    const root = k[0].toUpperCase() + k.slice(1).replace(/m$/, '');
+    if (NOTE_TO_SEMI[root] !== undefined) return root;
+  }
+  return null;
+}
+
+function buildCopyTitle_(origName, targetKey) {
+  const cleaned = String(origName || '歌譜')
+    .replace(/(?:\s*[\(（]\s*[A-GＡ-Ｇ][#b♯♭＃ｂ]?m?(?:\s*(?:key|調))?\s*[\)）]|\s+[A-GＡ-Ｇ][#b♯♭＃ｂ]?m?(?:\s*(?:key|調))?)\s*$/i, '')
+    .trim();
+  return `${cleaned || origName} (${targetKey}調)`;
+}
+
+function detectKeyFromParagraphs_(texts, docTitle) {
   const lines = [];
   for (const t of texts) {
     for (const sub of String(t || '').split(/[\r\n\u000b]+/)) {
       lines.push(sub);
     }
   }
-  for (const line of lines.slice(0, 10)) {
-    const m = line.trim().match(/(?:\/|Key\s*[:：]\s*|調性\s*[:：]\s*)([A-G][#b♯♭]?m?)\s*$/i);
-    if (m) {
-      const k = m[1];
-      const root = k[0].toUpperCase() + k.slice(1).replace('m', '');
-      if (NOTE_TO_SEMI[root] !== undefined) return root;
-    }
+  // 1. 優先從前 12 行譜頭偵測明確調性標記（如 "G key / 可萌 / 68拍"、"JPCC/約書亞/G"）
+  for (const line of lines.slice(0, 12)) {
+    const meta = matchMetadataKey_(line);
+    if (meta) return meta.root;
   }
-  const found = [];
+  // 2. 次優先從文件標題偵測（如 "受難路 G"、"因祢十架 (A調)"）
+  const titleKey = detectKeyFromTitle_(docTitle);
+  if (titleKey) return titleKey;
+
+  // 3. 最後以全曲和弦（含全形正規化後）進行順階和弦計分推測大調主音
+  const chords = [];
   for (const line of lines) {
     if (isChordLine_(line)) {
+      const norm = normalizeFullwidthForMatch_(line);
       CHORD_TOKEN_REGEX.lastIndex = 0;
       let m;
-      while ((m = CHORD_TOKEN_REGEX.exec(line)) !== null) {
-        found.push(m[1]);
+      while ((m = CHORD_TOKEN_REGEX.exec(norm)) !== null) {
+        const semi = NOTE_TO_SEMI[m[1]];
+        if (semi !== undefined) {
+          const q = m[2] || '';
+          const isMinor = /^m(?!aj)/i.test(q) || /^min/i.test(q);
+          chords.push({ root: m[1], semi, isMinor });
+        }
       }
     }
   }
-  return found.length > 0 ? found[found.length - 1] : 'G';
+  if (chords.length === 0) return 'G';
+
+  let bestKeySemi = chords[chords.length - 1].semi;
+  let bestScore = -1e9;
+  for (let k = 0; k < 12; k++) {
+    let score = 0;
+    for (const c of chords) {
+      const diff = (c.semi - k + 12) % 12;
+      if (!c.isMinor && diff === 0) score += 3;
+      else if (!c.isMinor && (diff === 5 || diff === 7)) score += 2;
+      else if (c.isMinor && diff === 9) score += 2;
+      else if (c.isMinor && (diff === 2 || diff === 4)) score += 1;
+      else score -= 2;
+    }
+    const first = chords[0];
+    const last = chords[chords.length - 1];
+    if (!last.isMinor && last.semi === k) score += 3;
+    if (!first.isMinor && first.semi === k) score += 1.5;
+    if (score > bestScore) {
+      bestScore = score;
+      bestKeySemi = k;
+    }
+  }
+  const PREFERRED_NAMES = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab', 'A', 'Bb', 'B'];
+  return PREFERRED_NAMES[bestKeySemi];
 }
 
 /**
- * 計算單行最小化就地替換清單 (不破壞既有 Tab、前導空白與字元樣式)
+ * 計算單行最小化就地替換清單 (不破壞既有 Tab、前導空白與字元樣式，並完整支援全形和弦)
  */
 function computeMinimalEditsForLine_(line, srcKey, dstKey, accPref, mode) {
   const srcSemi = NOTE_TO_SEMI[srcKey] !== undefined ? NOTE_TO_SEMI[srcKey] : 7;
   const dstSemi = NOTE_TO_SEMI[dstKey] !== undefined ? NOTE_TO_SEMI[dstKey] : srcSemi;
   const useFlats = shouldUseFlats_(dstKey, accPref || 'auto');
+  const normLine = normalizeFullwidthForMatch_(line);
 
-  // 1. Metadata line (e.g. "JPCC/約書亞/G")
-  const metaMatch = line.match(/(\/|Key\s*[:：]\s*|調性\s*[:：]\s*)([A-G][#b♯♭]?m?)(\s*)$/);
-  if (metaMatch && !isChordLine_(line)) {
-    const start = metaMatch.index + metaMatch[1].length;
-    const end = start + metaMatch[2].length;
+  // 1. Metadata line (e.g. "G key / 可萌 / 蛤 / 68拍", "JPCC/約書亞/G")
+  const metaMatch = matchMetadataKey_(line);
+  if (metaMatch) {
     const label = mode === 'number' ? `${dstKey} (級數)` : dstKey;
-    if (label !== metaMatch[2]) {
-      return [{ start, end, text: label }];
+    if (label !== metaMatch.key) {
+      return [{ start: metaMatch.start, end: metaMatch.end, text: label }];
     }
     return [];
   }
 
-  // 2. Inline bracket chords [G]
+  // 2. Inline bracket chords [G]（亦支援全形 ［Ｇ］）
   INLINE_BRACKET_REGEX.lastIndex = 0;
-  const bracketMatches = [...line.matchAll(INLINE_BRACKET_REGEX)];
+  const bracketMatches = [...normLine.matchAll(INLINE_BRACKET_REGEX)];
   if (bracketMatches.length > 0) {
     const edits = [];
     for (const m of bracketMatches) {
@@ -194,9 +315,9 @@ function computeMinimalEditsForLine_(line, srcKey, dstKey, accPref, mode) {
 
   if (!isChordLine_(line)) return [];
 
-  // 3. Chord line with smart column-alignment preservation
+  // 3. Chord line with smart column-alignment preservation (正規化後比對，座標與原字串 1:1 對應)
   CHORD_TOKEN_REGEX.lastIndex = 0;
-  const matches = [...line.matchAll(CHORD_TOKEN_REGEX)];
+  const matches = [...normLine.matchAll(CHORD_TOKEN_REGEX)];
   if (matches.length === 0) return [];
 
   const edits = [];
@@ -526,13 +647,14 @@ function collectParagraphsFromContainer_(container, outList) {
 
 function getActiveDocInfo() {
   const doc = DocumentApp.getActiveDocument();
+  const docName = doc.getName();
   const paragraphs = [];
   collectParagraphsFromContainer_(doc.getBody(), paragraphs);
   const texts = paragraphs.map(p => p.getText());
   return {
-    title: doc.getName(),
+    title: docName,
     url: doc.getUrl(),
-    detectedKey: detectKeyFromParagraphs_(texts)
+    detectedKey: detectKeyFromParagraphs_(texts, docName)
   };
 }
 
@@ -550,26 +672,31 @@ function runTransposeInGoogleDocs(params) {
   const createCopy = params.createCopy !== false;
 
   let doc;
+  let origDocName = '';
   if (params.docUrlOrId && params.docUrlOrId.trim()) {
     const m = params.docUrlOrId.match(/\/d\/([a-zA-Z0-9_-]{15,})/);
     const fileId = m ? m[1] : params.docUrlOrId.trim();
     if (createCopy) {
       const origFile = DriveApp.getFileById(fileId);
-      const copyTitle = `${origFile.getName().replace(/\s+[A-G][#b♯♭]?m?$/, '')} (${targetKey}調)`;
+      origDocName = origFile.getName();
+      const copyTitle = buildCopyTitle_(origDocName, targetKey);
       const copyFile = origFile.makeCopy(copyTitle);
       doc = DocumentApp.openById(copyFile.getId());
     } else {
       doc = DocumentApp.openById(fileId);
+      origDocName = doc.getName();
     }
   } else {
     const activeDoc = DocumentApp.getActiveDocument();
     if (createCopy) {
       const origFile = DriveApp.getFileById(activeDoc.getId());
-      const copyTitle = `${origFile.getName().replace(/\s+[A-G][#b♯♭]?m?$/, '')} (${targetKey}調)`;
+      origDocName = origFile.getName();
+      const copyTitle = buildCopyTitle_(origDocName, targetKey);
       const copyFile = origFile.makeCopy(copyTitle);
       doc = DocumentApp.openById(copyFile.getId());
     } else {
       doc = activeDoc;
+      origDocName = doc.getName();
     }
   }
 
@@ -582,7 +709,7 @@ function runTransposeInGoogleDocs(params) {
   const paragraphs = [];
   collectParagraphsFromContainer_(body, paragraphs);
   const texts = paragraphs.map(p => p.getText());
-  const srcKey = (params.sourceKey && params.sourceKey !== 'auto') ? params.sourceKey : detectKeyFromParagraphs_(texts);
+  const srcKey = (params.sourceKey && params.sourceKey !== 'auto') ? params.sourceKey : detectKeyFromParagraphs_(texts, origDocName);
 
   let modifiedParagraphs = 0;
   const deferredGuards = [];
