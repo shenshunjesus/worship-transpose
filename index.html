@@ -586,8 +586,157 @@
       padding: 2pt 4pt;
     }
 
+    /* Faithful 1:1 PDF Visual Replica Preview */
+    .pdf-style-bar {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      display: none;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      box-shadow: var(--shadow-sm);
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .pdf-style-bar.visible {
+      display: flex;
+    }
+
+    .pdf-style-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 10px;
+      line-height: 1.5;
+    }
+
+    .pdf-style-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #FCFBF9;
+      border: 1px solid var(--border-color);
+      border-radius: 999px;
+      padding: 2px 9px;
+      font-size: 11.5px;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .pdf-color-swatch {
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 0, 0, 0.22);
+      vertical-align: middle;
+    }
+
+    .pdf-toggle-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border-strong);
+      background: #FCFBF9;
+      color: var(--text-main);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.12s ease;
+    }
+
+    .pdf-toggle-pill:hover {
+      border-color: var(--accent);
+      background: var(--chord-bg);
+    }
+
+    .pdf-toggle-pill.active {
+      background: var(--accent-soft);
+      border-color: var(--accent-border);
+      color: #78350F;
+    }
+
+    .sheet-paper.pdf-mode {
+      background: transparent;
+      border: none;
+      box-shadow: none;
+      padding: 0;
+      min-height: 0;
+      max-width: 900px;
+      width: 100%;
+    }
+
+    .pdf-pages-stack {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      width: 100%;
+    }
+
+    .pdf-page-card {
+      position: relative;
+      background: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-paper);
+      overflow: hidden;
+      width: 100%;
+      max-width: 860px;
+    }
+
+    .pdf-page-canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .pdf-page-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(24, 24, 27, 0.72);
+      color: #FFFFFF;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 999px;
+      pointer-events: none;
+      backdrop-filter: blur(4px);
+    }
+
+    .pdf-status-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 40px 28px;
+      text-align: center;
+      color: var(--text-secondary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .pdf-scanned-banner {
+      width: 100%;
+      max-width: 860px;
+      background: #FEF3C7;
+      border: 1px solid #F59E0B;
+      color: #78350F;
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      text-align: left;
+    }
+
     @media (max-width: 640px) {
-      .sheet-paper:not(.docx-mode) {
+      .sheet-paper:not(.docx-mode):not(.pdf-mode) {
         padding: 24px 20px;
       }
     }
@@ -763,6 +912,9 @@
       .topbar,
       .left-col,
       .action-toolbar,
+      .pdf-style-bar,
+      .pdf-page-badge,
+      .pdf-scanned-banner,
       .modal-backdrop,
       .toast,
       .trust-strip,
@@ -803,12 +955,49 @@
         min-height: auto !important;
       }
 
-      .sheet-paper:not(.docx-mode) {
+      .sheet-paper:not(.docx-mode):not(.pdf-mode) {
         padding: 16mm 20mm !important;
       }
 
       .sheet-paper.docx-mode {
         padding-bottom: 0 !important;
+      }
+
+      .sheet-paper.pdf-mode {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        background: transparent !important;
+      }
+
+      .pdf-pages-stack {
+        display: block !important;
+        gap: 0 !important;
+      }
+
+      .pdf-page-card {
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+        break-after: page;
+        page-break-after: always;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .pdf-page-card:last-child {
+        break-after: auto;
+        page-break-after: auto;
+      }
+
+      .pdf-page-canvas {
+        width: 100% !important;
+        height: auto !important;
       }
 
       .doc-chord-line,
@@ -969,7 +1158,7 @@
         <div class="brand-icon">♯♭</div>
         <div>
           <h1>敬拜歌譜無損轉調工具</h1>
-          <p>支援 Google Docs / Word (.docx) 原排版無損轉調 · 級數譜 · 吉他 Capo 換算</p>
+          <p>支援 Word (.docx) / PDF 1:1 排版復刻 / Google Docs 無損轉調 · 級數譜 · 吉他 Capo 換算</p>
         </div>
       </div>
 
@@ -992,13 +1181,13 @@
       <!-- 1. File Upload / Google Docs Link -->
       <div class="panel-section">
         <div class="section-title">
-          <span>1. 載入歌譜檔案 (.docx / 純文字 / Google Docs)</span>
+          <span>1. 載入歌譜檔案 (.docx / .pdf / 純文字 / Google Docs)</span>
         </div>
 
         <div class="dropzone" id="dropzone">
-          <input type="file" id="fileInput" accept=".docx,.txt,.md" />
-          <div class="dropzone-title">📂 拖曳 .docx 或 .txt 歌譜至此，或點擊選取檔案</div>
-          <div class="dropzone-sub">保留原始字體大小、灰底段落標籤 (Intro/Verse/Chorus) 與排版</div>
+          <input type="file" id="fileInput" accept=".docx,.pdf,.txt,.md" />
+          <div class="dropzone-title">📂 拖曳 .docx / .pdf / .txt 歌譜至此，或點擊選取檔案</div>
+          <div class="dropzone-sub">支援 Word 無損轉調 &amp; PDF 自動學習字體/底色/排版 1:1 視覺復刻轉調</div>
         </div>
 
         <div class="loaded-file-pill" id="loadedFileBanner" style="display: none;">
@@ -1090,7 +1279,7 @@
           <span>6. 歌詞與和弦文字編輯 (可隨時直接修改或貼上)</span>
           <span style="font-size: 11px; color: var(--text-muted);">支援小節線 ｜ 或空白對齊或 [G]</span>
         </div>
-        <textarea id="rawTextEditor" class="raw-editor" spellcheck="false" placeholder="請上傳 .docx 歌譜檔案，或直接在此貼上歌詞與和弦..."></textarea>
+        <textarea id="rawTextEditor" class="raw-editor" spellcheck="false" placeholder="請上傳 .docx / .pdf 歌譜檔案，或直接在此貼上歌詞與和弦..."></textarea>
       </div>
 
     </aside>
@@ -1099,8 +1288,11 @@
     <section class="preview-col">
       <div class="action-toolbar">
         <div class="toolbar-group">
+          <button type="button" class="btn btn-primary" id="btnDownloadPdf" style="display: none;">
+            <span id="btnDownloadPdfPrefix">⬇ 下載復刻排版 .pdf</span> (<span id="btnDownloadPdfLabel">歌譜.pdf</span>)
+          </button>
           <button type="button" class="btn btn-primary" id="btnDownloadDocx">
-            ⬇ 下載原排版 .docx (<span id="btnDownloadKeyLabel">歌譜.docx</span>)
+            <span id="btnDownloadDocxPrefix">⬇ 下載原排版 .docx</span> (<span id="btnDownloadKeyLabel">歌譜.docx</span>)
           </button>
           <button type="button" class="btn" id="btnBatchExport" style="display: none;">
             📦 批次匯出常用調 (.docx)
@@ -1112,6 +1304,16 @@
           </button>
           <button type="button" class="btn" id="btnPrintPdf">
             🖨️ 列印 / 存成 PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Learned PDF Layout & Style Inspection Bar (visible in PDF mode) -->
+      <div class="pdf-style-bar" id="pdfStyleBar">
+        <div class="pdf-style-meta" id="pdfStyleMeta"></div>
+        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+          <button type="button" class="pdf-toggle-pill" id="btnTogglePdfTint" title="開啟後會在預覽畫面用柔和琥珀色標示被偵測並轉調的和弦位置（匯出 PDF 與列印仍維持原檔墨色）">
+            🔦 預覽標示轉調處
           </button>
         </div>
       </div>
@@ -1359,9 +1561,15 @@ G - - - | A - - -
       "ending", "solo", "instrumental", "vamp", "turnaround"
     ]);
 
-    const CHORD_TOKEN_REGEX = /(?<![A-Za-z0-9])([A-G][#b♯♭]?)((?:maj|min|m|M|dim|aug|sus|add|no|[0-9]|[\+\^\(\)])*)(?:\/([A-G][#b♯♭]?))?(?![A-Za-z0-9])/g;
-    const SINGLE_CHORD_REGEX = /^([A-G][#b♯♭]?)((?:maj|min|m|M|dim|aug|sus|add|no|[0-9]|[\+\^\(\)])*)(?:\/([A-G][#b♯♭]?))?$/;
-    const INLINE_BRACKET_REGEX = /\[([A-G][#b♯♭]?)((?:maj|min|m|M|dim|aug|sus|add|no|[0-9]|[\+\^\(\)])*)(?:\/([A-G][#b♯♭]?))?\]/g;
+    const CHORD_TOKEN_REGEX = /(?<![A-Za-z0-9])([A-G][#b♯♭]?)((?:maj|min|m|M|dim|aug|sus|add|no|[#b♯♭](?:5|9|11|13)|[0-9]|[\+\^\(\)Δ°ø])*)(?:\/([A-G][#b♯♭]?))?(?![A-Za-z0-9])/g;
+    const SINGLE_CHORD_REGEX = /^([A-G][#b♯♭]?)((?:maj|min|m|M|dim|aug|sus|add|no|[#b♯♭](?:5|9|11|13)|[0-9]|[\+\^\(\)Δ°ø])*)(?:\/([A-G][#b♯♭]?))?$/;
+    const INLINE_BRACKET_REGEX = /\[([A-G][#b♯♭]?)((?:maj|min|m|M|dim|aug|sus|add|no|[#b♯♭](?:5|9|11|13)|[0-9]|[\+\^\(\)Δ°ø])*)(?:\/([A-G][#b♯♭]?))?\]/g;
+
+    function isValidChordToken(root, quality, bass) {
+      // Reject section labels like "C1" / "B1" (Chorus 1 / Bridge 1) mistakenly matched as chords
+      if (quality === "1" && !bass) return false;
+      return NOTE_TO_SEMI[root] !== undefined;
+    }
 
     function normalizeFullwidthForMatch(str) {
       let out = "";
@@ -1378,28 +1586,43 @@ G - - - | A - - -
       return out;
     }
 
+    const BARLINE_CHAR_REGEX = /[｜|│┃¦∣]/;
+
     function isSectionHeader(line) {
       const s = normalizeFullwidthForMatch(line).trim().toLowerCase().replace(/:$/, "");
       if (!s) return false;
       if (SECTION_HEADERS.has(s)) return true;
-      return /^(?:->)?\s*(intro|verse|chorus|bridge|tag|outro|interlude|pre-?chorus|v|pc|c|b)\s*\d*$/i.test(s);
+      return /^(?:->)?\s*(intro|verse|chorus|chours|bridge|tag|outro|interlude|pre-?chorus|pre-?chours|v|pc|c|b)\s*\d*(?:\s*\([^)]{1,30}\))?$/i.test(s);
     }
 
     function isChordLine(line) {
-      const norm = normalizeFullwidthForMatch(line).trim();
+      let norm = normalizeFullwidthForMatch(line).trim();
       if (!norm || isSectionHeader(norm)) return false;
+      // Allow lines starting with a labeled section prefix like "Intro: G - Bm - │ D"
+      norm = norm.replace(/^(?:->)?\s*(?:intro|verse\s*\d*|pre-?chorus\s*\d*|pre-?chours\s*\d*|chorus\s*\d*|bridge\s*\d*|tag\s*\d*|outro|interlude|ending|vamp|solo|turnaround|[vcb]\d+|pc\d*)\s*:\s*/i, "").trim();
+      if (!norm) return false;
       const chineseCount = (norm.match(/[\u4e00-\u9fff]/g) || []).length;
-      const tokens = norm.split(/[\s｜|\-–—―─_\/、,，\(\)\[\]\*]+/).filter(Boolean);
+      // Split on whitespace, ALL vertical barlines (including U+2502 │), dashes, and separators
+      // while preserving internal chord parentheses like B7(sus4) or F#m7(b5)
+      const rawTokens = norm
+        .split(/[\s｜|│┃¦∣\-–—―─_、,，\[\]\*·•→:]+/)
+        .map(t => t.replace(/^\(+/, "").replace(/\)+$/, (m, off, str) => {
+          // Keep closing ')' if there is a matching '(' inside the token (e.g. "B7(sus4)")
+          return str.includes("(") ? m : "";
+        }))
+        .filter(Boolean);
+      const tokens = rawTokens.filter(t => !/^(?:x\d+|\d+x|n\.?c\.?|repeat)$/i.test(t));
       if (tokens.length === 0) return false;
 
       let chordMatches = 0;
       for (const tok of tokens) {
-        if (SINGLE_CHORD_REGEX.test(tok)) chordMatches++;
+        const sm = tok.match(SINGLE_CHORD_REGEX);
+        if (sm && isValidChordToken(sm[1], sm[2] || "", sm[3])) chordMatches++;
       }
-      const hasGrid = /[｜|]/.test(norm) || /[-–—―─]\s*[-–—―─]/.test(norm);
+      const hasGrid = BARLINE_CHAR_REGEX.test(norm) || /[-–—―─]\s*[-–—―─]/.test(norm);
       if (hasGrid && chordMatches >= 1) return true;
       if (chineseCount > 0 && !hasGrid) return false;
-      if (tokens.length <= 16 && (chordMatches / tokens.length) >= 0.6) {
+      if (tokens.length <= 20 && (chordMatches / tokens.length) >= 0.6) {
         const englishWords = tokens.filter(t => t.length > 1 && /^[A-Za-z]+$/.test(t) && !/^[A-G](m|maj|min|dim|aug|sus|add)$/.test(t));
         if (englishWords.length >= 2) return false;
         return true;
@@ -1411,11 +1634,13 @@ G - - - | A - - -
       if (!line || !line.trim() || isChordLine(line)) return null;
       const norm = normalizeFullwidthForMatch(line);
 
-      let m = norm.match(/(?:^|[\s\/|(\[（【,;，；])((?:原調|調性|[Kk][Ee][Yy])\s*[:：]?\s*)([A-G][#b♯♭]?m?)(?=$|[\s\/|)\]）】.,;，；])/);
+      let m = norm.match(/(?:^|[\s\/|(\[（【,;，；•·])((?:原調|調性|[Kk][Ee][Yy](?:\s+[Oo][Ff])?)\s*[:：=\-]?\s*)([A-G][#b♯♭]?m?)(?=$|[\s\/|)\]）】.,;，；•·])/);
       if (m) {
         const keyStr = m[2];
         const root = keyStr[0].toUpperCase() + keyStr.slice(1).replace(/m$/, "");
-        if (NOTE_TO_SEMI[root] !== undefined) {
+        const hasExplicitSep = /[:：=\-\/|]|原調|調性|\bof\b/i.test(m[1]) || /[\u4e00-\u9fff\/|：:=]/.test(norm);
+        const longEngSentence = !hasExplicitSep && (norm.match(/[A-Za-z]{2,}/g) || []).length >= 5;
+        if (NOTE_TO_SEMI[root] !== undefined && !longEngSentence) {
           const start = m.index + (m[0].length - keyStr.length);
           return { start, end: start + keyStr.length, key: keyStr, root };
         }
@@ -1470,16 +1695,29 @@ G - - - | A - - -
 
       const chords = [];
       for (const line of lines) {
+        const norm = normalizeFullwidthForMatch(line);
         if (isChordLine(line)) {
-          const norm = normalizeFullwidthForMatch(line);
           let m;
           CHORD_TOKEN_REGEX.lastIndex = 0;
           while ((m = CHORD_TOKEN_REGEX.exec(norm)) !== null) {
+            if (!isValidChordToken(m[1], m[2] || "", m[3])) continue;
             const semi = NOTE_TO_SEMI[m[1]];
             if (semi !== undefined) {
               const q = m[2] || "";
               const isMinor = /^m(?!aj)/i.test(q) || /^min/i.test(q);
               chords.push({ root: m[1], semi, isMinor });
+            }
+          }
+        } else {
+          INLINE_BRACKET_REGEX.lastIndex = 0;
+          let bm;
+          while ((bm = INLINE_BRACKET_REGEX.exec(norm)) !== null) {
+            if (!isValidChordToken(bm[1], bm[2] || "", bm[3])) continue;
+            const semi = NOTE_TO_SEMI[bm[1]];
+            if (semi !== undefined) {
+              const q = bm[2] || "";
+              const isMinor = /^m(?!aj)/i.test(q) || /^min/i.test(q);
+              chords.push({ root: bm[1], semi, isMinor });
             }
           }
         }
@@ -1517,7 +1755,11 @@ G - - - | A - - -
       return FLAT_KEYS.has(targetKey);
     }
 
-    function transposeChordParts(root, quality, bass, srcSemi, dstSemi, useFlats, mode) {
+    const MAJOR_THIRD_SHARP_BASS = {
+      "A": "C#", "D": "F#", "E": "G#", "B": "D#", "F#": "A#"
+    };
+
+    function transposeChordParts(root, quality, bass, srcSemi, dstSemi, useFlats, mode, accPref = "auto") {
       const rootSemi = NOTE_TO_SEMI[root];
       if (rootSemi === undefined) return root + (quality || "") + (bass ? "/" + bass : "");
 
@@ -1532,7 +1774,13 @@ G - - - | A - - -
         const bassSemi = NOTE_TO_SEMI[bass];
         if (bassSemi !== undefined) {
           const nbSemi = (bassSemi - srcSemi + dstSemi + 120) % 12;
-          newBassNote = useFlats ? NOTES_FLAT[nbSemi] : NOTES_SHARP[nbSemi];
+          const isMinorQuality = /^(?:m(?!aj)|min|dim|ø|°)/i.test(quality || "");
+          if (accPref === "auto" && !isMinorQuality && ((nbSemi - newRootSemi + 12) % 12 === 4) && MAJOR_THIRD_SHARP_BASS[newRootNote]) {
+            // Canonical 1st-inversion major triad slash bass (e.g. A/C#, D/F#, E/G#, B/D# instead of A/Db or D/Gb)
+            newBassNote = MAJOR_THIRD_SHARP_BASS[newRootNote];
+          } else {
+            newBassNote = useFlats ? NOTES_FLAT[nbSemi] : NOTES_SHARP[nbSemi];
+          }
           const bDiff = (nbSemi - dstSemi + 120) % 12;
           newBassNum = useFlats ? SCALE_DEGREES_FLAT[bDiff] : SCALE_DEGREES_SHARP[bDiff];
         } else {
@@ -1575,13 +1823,13 @@ G - - - | A - - -
 
       // Check inline bracket chords [G] (including fullwidth ［Ｇ］)
       INLINE_BRACKET_REGEX.lastIndex = 0;
-      const bracketMatches = [...normLine.matchAll(INLINE_BRACKET_REGEX)];
+      const bracketMatches = [...normLine.matchAll(INLINE_BRACKET_REGEX)].filter(m => isValidChordToken(m[1], m[2] || "", m[3]));
       if (bracketMatches.length > 0) {
         let out = "";
         let cur = 0;
         for (const m of bracketMatches) {
           out += line.slice(cur, m.index);
-          out += "[" + transposeChordParts(m[1], m[2] || "", m[3], srcSemi, dstSemi, useFlats, mode) + "]";
+          out += "[" + transposeChordParts(m[1], m[2] || "", m[3], srcSemi, dstSemi, useFlats, mode, accPref) + "]";
           cur = m.index + m[0].length;
         }
         return out + line.slice(cur);
@@ -1594,7 +1842,7 @@ G - - - | A - - -
       // adjusts gap spaces to compensate for chord token length changes,
       // and keeps measure lines ｜ and | strictly locked to their original visual columns.
       CHORD_TOKEN_REGEX.lastIndex = 0;
-      const matches = [...normLine.matchAll(CHORD_TOKEN_REGEX)];
+      const matches = [...normLine.matchAll(CHORD_TOKEN_REGEX)].filter(m => isValidChordToken(m[1], m[2] || "", m[3]));
       if (matches.length === 0) return line;
 
       let out = "";
@@ -1624,7 +1872,8 @@ G - - - | A - - -
         } else if (debt < 0) {
           // Previous chord became shorter; pad spaces into gap before barline or next chord
           const pad = -debt;
-          const pipeIdx = gap.indexOf("｜") >= 0 ? gap.indexOf("｜") : gap.indexOf("|");
+          const pipeM = gap.match(BARLINE_CHAR_REGEX);
+          const pipeIdx = pipeM ? pipeM.index : -1;
           if (pipeIdx >= 0) {
             gap = gap.slice(0, pipeIdx) + " ".repeat(pad) + gap.slice(pipeIdx);
           } else {
@@ -1635,7 +1884,7 @@ G - - - | A - - -
 
         out += gap;
         const oldTok = m[0];
-        const newTok = transposeChordParts(m[1], m[2] || "", m[3], srcSemi, dstSemi, useFlats, mode);
+        const newTok = transposeChordParts(m[1], m[2] || "", m[3], srcSemi, dstSemi, useFlats, mode, accPref);
         out += newTok;
         debt += newTok.length - oldTok.length;
         cursor = m.index + oldTok.length;
@@ -1892,6 +2141,121 @@ G - - - | A - - -
 
     async function buildDocxWithUpdatedXml(baseDocxUint8, newXmlString) {
       return buildDocxWithUpdatedXmlMap(baseDocxUint8, { "word/document.xml": newXmlString });
+    }
+
+    const DEFAULT_MINIMAL_DOCUMENT_XML =
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">` +
+      `<w:body><w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1080" w:right="1080" w:bottom="1080" w:left="1080" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr></w:body></w:document>`;
+
+    const DEFAULT_MINIMAL_STYLES_XML =
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">` +
+      `<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Microsoft JhengHei" w:eastAsia="Microsoft JhengHei" w:hAnsi="Microsoft JhengHei"/><w:sz w:val="24"/><w:szCs w:val="24"/></w:rPr></w:rPrDefault>` +
+      `<w:pPrDefault><w:pPr><w:snapToGrid w:val="0"/><w:spacing w:after="0" w:line="264" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults>` +
+      `<w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style>` +
+      `</w:styles>`;
+
+    async function createFreshDocxBytes(documentXml, stylesXml = DEFAULT_MINIMAL_STYLES_XML) {
+      const files = [
+        {
+          name: "[Content_Types].xml",
+          text:
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+            `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+            `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+            `<Default Extension="xml" ContentType="application/xml"/>` +
+            `<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>` +
+            `<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>` +
+            `</Types>`
+        },
+        {
+          name: "_rels/.rels",
+          text:
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+            `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+            `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>` +
+            `</Relationships>`
+        },
+        {
+          name: "word/_rels/document.xml.rels",
+          text:
+            `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+            `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+            `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>` +
+            `</Relationships>`
+        },
+        { name: "word/styles.xml", text: stylesXml || DEFAULT_MINIMAL_STYLES_XML },
+        { name: "word/document.xml", text: documentXml || DEFAULT_MINIMAL_DOCUMENT_XML }
+      ];
+
+      const encoder = new TextEncoder();
+      const localParts = [];
+      const cdParts = [];
+      let offset = 0;
+
+      for (const f of files) {
+        const nameBytes = encoder.encode(f.name);
+        const rawBytes = encoder.encode(f.text);
+        const compressed = await deflateRaw(rawBytes);
+        const crc = crc32(rawBytes);
+
+        const lh = new Uint8Array(30 + nameBytes.length);
+        const ldv = new DataView(lh.buffer);
+        ldv.setUint32(0, 0x04034b50, true);
+        ldv.setUint16(4, 20, true);
+        ldv.setUint16(6, 0, true);
+        ldv.setUint16(8, compressed.method, true);
+        ldv.setUint16(10, 0, true);
+        ldv.setUint16(12, 0, true);
+        ldv.setUint32(14, crc, true);
+        ldv.setUint32(18, compressed.data.length, true);
+        ldv.setUint32(22, rawBytes.length, true);
+        ldv.setUint16(26, nameBytes.length, true);
+        ldv.setUint16(28, 0, true);
+        lh.set(nameBytes, 30);
+        localParts.push(lh, compressed.data);
+
+        const cd = new Uint8Array(46 + nameBytes.length);
+        const cdv = new DataView(cd.buffer);
+        cdv.setUint32(0, 0x02014b50, true);
+        cdv.setUint16(4, 20, true);
+        cdv.setUint16(6, 20, true);
+        cdv.setUint16(8, 0, true);
+        cdv.setUint16(10, compressed.method, true);
+        cdv.setUint16(12, 0, true);
+        cdv.setUint16(14, 0, true);
+        cdv.setUint32(16, crc, true);
+        cdv.setUint32(20, compressed.data.length, true);
+        cdv.setUint32(24, rawBytes.length, true);
+        cdv.setUint16(28, nameBytes.length, true);
+        cdv.setUint16(30, 0, true);
+        cdv.setUint16(32, 0, true);
+        cdv.setUint16(34, 0, true);
+        cdv.setUint16(36, 0, true);
+        cdv.setUint32(38, 0, true);
+        cdv.setUint32(42, offset, true);
+        cd.set(nameBytes, 46);
+        cdParts.push(cd);
+
+        offset += lh.length + compressed.data.length;
+      }
+
+      const cdSize = cdParts.reduce((a, b) => a + b.length, 0);
+      const eocd = new Uint8Array(22);
+      const edv = new DataView(eocd.buffer);
+      edv.setUint32(0, 0x06054b50, true);
+      edv.setUint16(8, files.length, true);
+      edv.setUint16(10, files.length, true);
+      edv.setUint32(12, cdSize, true);
+      edv.setUint32(16, offset, true);
+
+      const all = [...localParts, ...cdParts, eocd];
+      const total = all.reduce((a, b) => a + b.length, 0);
+      const out = new Uint8Array(total);
+      let pos = 0;
+      for (const p of all) { out.set(p, pos); pos += p.length; }
+      return out;
     }
 
     function unescapeXml(s) {
@@ -2769,7 +3133,7 @@ G - - - | A - - -
     function startsWithSectionKeyword(line) {
       if (isSectionHeader(line)) return true;
       const norm = normalizeFullwidthForMatch(line).trim();
-      return /^(?:->)?\s*(intro|verse\s*\d*|pre-?chorus|chorus\s*\d*|bridge\s*\d*|tag|outro|interlude|ending|solo|instrumental|vamp|turnaround)\b/i.test(norm);
+      return /^(?:->)?\s*(intro|verse\s*\d*|pre-?chorus|pre-?chours|chorus\s*\d*|bridge\s*\d*|tag|outro|interlude|ending|solo|instrumental|vamp|turnaround)\b/i.test(norm);
     }
 
     function patchParagraphPPrXml(pXml, opts) {
@@ -3024,13 +3388,1943 @@ G - - - | A - - -
     }
 
     // =========================================================================
+    // 3C. Client-Side PDF.js & pdf-lib Resilient Loader (100% Zero-Upload)
+    // =========================================================================
+    const PDFJS_VERSION = "3.11.174";
+    const PDFJS_CMAP_URL = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/cmaps/`;
+    const PDFJS_STD_FONT_URL = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/standard_fonts/`;
+    let pdfJsLoadPromise = null;
+    let pdfLibLoadPromise = null;
+
+    function loadExternalScript(url) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = url;
+        s.async = true;
+        s.crossOrigin = "anonymous";
+        s.onload = () => resolve(url);
+        s.onerror = () => {
+          s.remove();
+          reject(new Error(`無法載入腳本：${url}`));
+        };
+        document.head.appendChild(s);
+      });
+    }
+
+    async function ensurePdfJsLoaded() {
+      if (window.pdfjsLib) return window.pdfjsLib;
+      if (pdfJsLoadPromise) return pdfJsLoadPromise;
+      pdfJsLoadPromise = (async () => {
+        const sources = [
+          {
+            lib: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.min.js`,
+            worker: `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`
+          },
+          {
+            lib: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.min.js`,
+            worker: `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDFJS_VERSION}/pdf.worker.min.js`
+          },
+          {
+            lib: `https://unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.min.js`,
+            worker: `https://unpkg.com/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`
+          }
+        ];
+        let matched = null;
+        let lastErr = null;
+        for (const src of sources) {
+          try {
+            await loadExternalScript(src.lib);
+            if (window.pdfjsLib) {
+              matched = src;
+              break;
+            }
+          } catch (e) {
+            lastErr = e;
+          }
+        }
+        if (!window.pdfjsLib || !matched) {
+          pdfJsLoadPromise = null;
+          throw new Error("無法載入 PDF 解析引擎 (pdf.js)，請確認網路連線後再試一次。" + (lastErr ? ` (${lastErr.message})` : ""));
+        }
+
+        // Create same-origin Blob Worker URL to avoid cross-origin Worker restriction on GitHub Pages / file://
+        let workerReady = false;
+        try {
+          const resp = await fetch(matched.worker);
+          if (resp.ok) {
+            const code = await resp.text();
+            const blobUrl = URL.createObjectURL(new Blob([code], { type: "application/javascript" }));
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = blobUrl;
+            workerReady = true;
+          }
+        } catch (_) {}
+        if (!workerReady) {
+          window.pdfjsLib.GlobalWorkerOptions.workerSrc = matched.worker;
+        }
+        return window.pdfjsLib;
+      })();
+      return pdfJsLoadPromise;
+    }
+
+    async function ensurePdfLibLoaded() {
+      if (window.PDFLib) return window.PDFLib;
+      if (pdfLibLoadPromise) return pdfLibLoadPromise;
+      pdfLibLoadPromise = (async () => {
+        const urls = [
+          "https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js",
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js",
+          "https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"
+        ];
+        let lastErr = null;
+        for (const u of urls) {
+          try {
+            await loadExternalScript(u);
+            if (window.PDFLib) return window.PDFLib;
+          } catch (e) {
+            lastErr = e;
+          }
+        }
+        pdfLibLoadPromise = null;
+        throw new Error("無法載入 PDF 匯出引擎 (pdf-lib)，請確認網路連線後再試一次。" + (lastErr ? ` (${lastErr.message})` : ""));
+      })();
+      return pdfLibLoadPromise;
+    }
+
+    // =========================================================================
+    // 3D. Universal PDF Style-Learning & Visual Layout Reconstruction Engine
+    // =========================================================================
+    let _pdfScratchCanvas = null;
+    function getPdfMeasureCtx() {
+      if (!_pdfScratchCanvas) {
+        _pdfScratchCanvas = document.createElement("canvas");
+        _pdfScratchCanvas.width = 16;
+        _pdfScratchCanvas.height = 16;
+      }
+      return _pdfScratchCanvas.getContext("2d");
+    }
+
+    function rgbToHex(r, g, b) {
+      const clamp = (v) => Math.max(0, Math.min(255, Math.round(v)));
+      return "#" + [clamp(r), clamp(g), clamp(b)].map(v => v.toString(16).padStart(2, "0")).join("");
+    }
+
+    function hexToRgbObj(hex) {
+      const clean = (hex || "#000000").replace(/^#/, "");
+      if (!/^[0-9a-fA-F]{6}$/.test(clean)) return { r: 0, g: 0, b: 0 };
+      return {
+        r: parseInt(clean.slice(0, 2), 16),
+        g: parseInt(clean.slice(2, 4), 16),
+        b: parseInt(clean.slice(4, 6), 16)
+      };
+    }
+
+    function colorDistRgb(a, b) {
+      const dr = a.r - b.r;
+      const dg = a.g - b.g;
+      const db = a.b - b.b;
+      return Math.sqrt(dr * dr + dg * dg + db * db);
+    }
+
+    function isPureWinAnsi(str) {
+      for (let i = 0; i < str.length; i++) {
+        const c = str.charCodeAt(i);
+        if (c < 0x20 || c > 0x7E) return false;
+      }
+      return true;
+    }
+
+    function buildCanvasFontSpec(fontMeta, fontSizePx, overrideWeight = null) {
+      const style = fontMeta.italic ? "italic" : "normal";
+      const weight = overrideWeight !== null ? overrideWeight : (fontMeta.weight || 400);
+      return `${style} ${weight} ${fontSizePx.toFixed(2)}px ${fontMeta.cssFontFamily}`;
+    }
+
+    function resolvePdfFontMeta(page, fontName, styleObj) {
+      let fontObj = null;
+      try {
+        if (page && page.commonObjs && page.commonObjs.has(fontName)) {
+          fontObj = page.commonObjs.get(fontName);
+        }
+      } catch (_) {}
+
+      const rawName = (fontObj && fontObj.name) || (styleObj && styleObj.fontFamily) || fontName || "sans-serif";
+      const cleanName = String(rawName).replace(/^[A-Z]{6}\+/, "").trim();
+      const low = cleanName.toLowerCase();
+      const isObfuscated = /^(?:g_d\d+_f\d+|f\d+|t\d+|c\d+|cidfont|unnamed|sans-serif|serif|monospace)/i.test(cleanName);
+
+      const hasBoldWord = /(?:bold|heavy|black|demi|semibold|extrabold)/i.test(cleanName);
+      const hasMediumWord = /(?:^|[-_,])medium\b/i.test(cleanName);
+      const bold = hasBoldWord || Boolean(fontObj && (fontObj.bold || fontObj.black));
+      const weight = /(?:black|heavy|extrabold)/i.test(cleanName)
+        ? 800
+        : (bold ? 700 : (hasMediumWord ? 500 : 400));
+      const italic = /(?:italic|oblique|slant)/i.test(cleanName) || Boolean(fontObj && fontObj.italic);
+
+      const styleGeneric = (styleObj && styleObj.fontFamily || "").toLowerCase();
+      let generic = "sans-serif";
+      if (/courier|consolas|mono|menlo|monaco|inconsolata|fira\s?code|jetbrains/i.test(cleanName) || styleGeneric.includes("monospace")) {
+        generic = "monospace";
+      } else if (/times|georgia|cambria|garamond|palatino|ming|sung|song|kai|serif|baskerville|didot/i.test(cleanName) || (styleGeneric.includes("serif") && !styleGeneric.includes("sans"))) {
+        generic = "serif";
+      }
+
+      let cssFontFamily;
+      let wordFont;
+      let displayLabel;
+      let standardPdfFont = generic === "serif" ? "times" : (generic === "monospace" ? "courier" : "helvetica");
+      let isExactStandard = false;
+
+      if (/jhenghei|微軟正黑/i.test(cleanName)) {
+        cssFontFamily = `"Microsoft JhengHei", "微軟正黑體", "PingFang TC", "Noto Sans TC", Arial, sans-serif`;
+        wordFont = "Microsoft JhengHei";
+        displayLabel = "微軟正黑體";
+      } else if (/arial\s*unicode/i.test(cleanName)) {
+        cssFontFamily = `"Arial Unicode MS", Arial, "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif`;
+        wordFont = "Arial Unicode MS";
+        displayLabel = "Arial Unicode MS";
+      } else if (/pmingliu|mingliu|新細明|細明/i.test(cleanName)) {
+        cssFontFamily = `"PMingLiU", "新細明體", "MingLiU", "Noto Serif TC", "Times New Roman", serif`;
+        wordFont = "PMingLiU";
+        displayLabel = "新細明體";
+        standardPdfFont = "times";
+      } else if (/dfkai|biaukai|標楷/i.test(cleanName)) {
+        cssFontFamily = `"DFKai-SB", "標楷體", "BiauKai", "Kaiti TC", serif`;
+        wordFont = "DFKai-SB";
+        displayLabel = "標楷體";
+        standardPdfFont = "times";
+      } else if (/notosans|sourcehansans|思源黑/i.test(cleanName)) {
+        cssFontFamily = `"Noto Sans TC", "Source Han Sans TC", "Microsoft JhengHei", "PingFang TC", Arial, sans-serif`;
+        wordFont = "Noto Sans TC";
+        displayLabel = "Noto Sans TC";
+      } else if (/notoserif|sourcehanserif|思源宋/i.test(cleanName)) {
+        cssFontFamily = `"Noto Serif TC", "Source Han Serif TC", "PMingLiU", "Times New Roman", serif`;
+        wordFont = "Noto Serif TC";
+        displayLabel = "Noto Serif TC";
+        standardPdfFont = "times";
+      } else if (/pingfang|heiti|stheit/i.test(cleanName)) {
+        cssFontFamily = `"PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif`;
+        wordFont = "PingFang TC";
+        displayLabel = "PingFang TC";
+      } else if (/arial|helvetica|nimbussans|liberationsans/i.test(cleanName)) {
+        cssFontFamily = `Arial, Helvetica, "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif`;
+        wordFont = "Arial";
+        displayLabel = /helvetica/i.test(cleanName) ? "Helvetica" : "Arial";
+        standardPdfFont = "helvetica";
+        isExactStandard = true;
+      } else if (/roboto/i.test(cleanName)) {
+        cssFontFamily = `Roboto, Arial, "Microsoft JhengHei", "PingFang TC", sans-serif`;
+        wordFont = "Roboto";
+        displayLabel = "Roboto";
+      } else if (/calibri|carlito/i.test(cleanName)) {
+        cssFontFamily = `Calibri, "Segoe UI", Arial, "Microsoft JhengHei", sans-serif`;
+        wordFont = "Calibri";
+        displayLabel = "Calibri";
+      } else if (/segoe/i.test(cleanName)) {
+        cssFontFamily = `"Segoe UI", "Microsoft JhengHei", Arial, sans-serif`;
+        wordFont = "Segoe UI";
+        displayLabel = "Segoe UI";
+      } else if (/times|liberationserif|nimbusroman/i.test(cleanName)) {
+        cssFontFamily = `"Times New Roman", Times, Georgia, "PMingLiU", serif`;
+        wordFont = "Times New Roman";
+        displayLabel = "Times New Roman";
+        standardPdfFont = "times";
+        isExactStandard = true;
+      } else if (/courier/i.test(cleanName)) {
+        cssFontFamily = `"Courier New", Courier, Consolas, monospace`;
+        wordFont = "Courier New";
+        displayLabel = "Courier New";
+        standardPdfFont = "courier";
+        isExactStandard = true;
+      } else if (!isObfuscated && cleanName.length >= 2) {
+        const baseClean = cleanName
+          .replace(/(?:[-_,](?:Bold|Italic|Oblique|Regular|Medium|Light|Semibold|DemiBold|Black|Heavy|Condensed|Narrow|Book|Roman|Thin|MT|PSMT|PS|Std|Pro|W\d+))+$/i, "")
+          .replace(/(?:BoldItalic|BoldOblique|Bold|Italic|Regular|PSMT|MT)$/i, "")
+          .trim() || cleanName;
+        const spaced = baseClean.replace(/([a-z])([A-Z])/g, "$1 $2").trim();
+        const names = [spaced, baseClean].filter((v, idx, arr) => v && arr.indexOf(v) === idx);
+        const quoted = names.map(quoteCssFont);
+        if (generic === "serif") {
+          cssFontFamily = `${quoted.join(", ")}, "Times New Roman", "PMingLiU", serif`;
+          standardPdfFont = "times";
+        } else if (generic === "monospace") {
+          cssFontFamily = `${quoted.join(", ")}, Consolas, "Courier New", monospace`;
+          standardPdfFont = "courier";
+        } else {
+          cssFontFamily = `${quoted.join(", ")}, Arial, "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif`;
+          standardPdfFont = "helvetica";
+        }
+        wordFont = spaced;
+        displayLabel = spaced;
+      } else {
+        if (generic === "serif") {
+          cssFontFamily = `"Times New Roman", "PMingLiU", "Noto Serif TC", Georgia, serif`;
+          wordFont = "PMingLiU";
+          displayLabel = "襯線字體 (Serif)";
+        } else if (generic === "monospace") {
+          cssFontFamily = `Consolas, "Courier New", Menlo, monospace`;
+          wordFont = "Consolas";
+          displayLabel = "等寬字體 (Mono)";
+        } else {
+          cssFontFamily = `Arial, "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif`;
+          wordFont = "Microsoft JhengHei";
+          displayLabel = "無襯線字體 (Sans)";
+        }
+      }
+
+      const rawAsc = (styleObj && typeof styleObj.ascent === "number" && styleObj.ascent > 0)
+        ? styleObj.ascent
+        : (fontObj && typeof fontObj.ascent === "number" && fontObj.ascent > 0 ? fontObj.ascent : 0.86);
+      const rawDesc = (styleObj && typeof styleObj.descent === "number" && styleObj.descent < 0)
+        ? styleObj.descent
+        : (fontObj && typeof fontObj.descent === "number" && fontObj.descent < 0 ? fontObj.descent : -0.22);
+
+      return {
+        fontName,
+        rawName,
+        cleanName,
+        displayLabel,
+        wordFont,
+        cssFontFamily,
+        standardPdfFont,
+        isExactStandard,
+        isObfuscated,
+        generic,
+        bold,
+        weight,
+        italic,
+        ascent: Math.max(0.72, Math.min(1.05, rawAsc)),
+        descent: Math.min(-0.10, Math.max(-0.34, rawDesc))
+      };
+    }
+
+    function detectPageBackgroundColor(ctx, wPx, hPx) {
+      // Sample the 4 outer margin strips of the PDF page to find the dominant paper color
+      const samples = [];
+      const pad = Math.max(4, Math.floor(Math.min(wPx, hPx) * 0.015));
+      const boxes = [
+        [pad, pad, Math.min(40, wPx - 2 * pad), Math.min(20, hPx - 2 * pad)],
+        [Math.max(pad, wPx - pad - 40), pad, Math.min(40, wPx - 2 * pad), Math.min(20, hPx - 2 * pad)],
+        [pad, Math.max(pad, hPx - pad - 20), Math.min(40, wPx - 2 * pad), Math.min(20, hPx - 2 * pad)],
+        [Math.max(pad, wPx - pad - 40), Math.max(pad, hPx - pad - 20), Math.min(40, wPx - 2 * pad), Math.min(20, hPx - 2 * pad)]
+      ];
+      const buckets = new Map();
+      for (const [bx, by, bw, bh] of boxes) {
+        if (bw <= 0 || bh <= 0) continue;
+        const img = ctx.getImageData(bx, by, bw, bh).data;
+        for (let i = 0; i < img.length; i += 16) {
+          const r = img[i], g = img[i + 1], b = img[i + 2];
+          const key = `${r >> 2},${g >> 2},${b >> 2}`;
+          let entry = buckets.get(key);
+          if (!entry) { entry = { count: 0, sr: 0, sg: 0, sb: 0 }; buckets.set(key, entry); }
+          entry.count++;
+          entry.sr += r; entry.sg += g; entry.sb += b;
+        }
+      }
+      let best = null;
+      for (const e of buckets.values()) {
+        if (!best || e.count > best.count) best = e;
+      }
+      if (!best) return { r: 255, g: 255, b: 255, hex: "#ffffff" };
+      const r = Math.round(best.sr / best.count);
+      const g = Math.round(best.sg / best.count);
+      const b = Math.round(best.sb / best.count);
+      return { r, g, b, hex: rgbToHex(r, g, b) };
+    }
+
+    function sampleTokenVisualStyleFromCanvas(baseCtx, scale, x0Pt, x1Pt, topYPt, botYPt, pageBgRgb, fontMeta, origText, fontSizePt) {
+      const cw = baseCtx.canvas.width;
+      const ch = baseCtx.canvas.height;
+      const left = Math.max(0, Math.floor(x0Pt * scale) - 2);
+      const right = Math.min(cw, Math.ceil(x1Pt * scale) + 2);
+      const top = Math.max(0, Math.floor(topYPt * scale) - 1);
+      const bottom = Math.min(ch, Math.ceil(botYPt * scale) + 1);
+      const bw = Math.max(1, right - left);
+      const bh = Math.max(1, bottom - top);
+
+      let bgRgb = { r: pageBgRgb.r, g: pageBgRgb.g, b: pageBgRgb.b };
+      let fgRgb = { r: 0, g: 0, b: 0 };
+      let detectedWeight = fontMeta.weight || 400;
+
+      try {
+        const data = baseCtx.getImageData(left, top, bw, bh).data;
+        // Step 1: Dominant color inside box + 1px rim is ALWAYS the true background immediately behind the glyph
+        const buckets = new Map();
+        const totalPixels = bw * bh;
+        const step = totalPixels > 4000 ? 2 : 1;
+        for (let py = 0; py < bh; py += step) {
+          for (let px = 0; px < bw; px += step) {
+            const idx = (py * bw + px) * 4;
+            const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+            const key = `${r >> 2},${g >> 2},${b >> 2}`;
+            let bkt = buckets.get(key);
+            if (!bkt) { bkt = { count: 0, sr: 0, sg: 0, sb: 0 }; buckets.set(key, bkt); }
+            bkt.count++;
+            bkt.sr += r; bkt.sg += g; bkt.sb += b;
+          }
+        }
+        let dom = null;
+        for (const bkt of buckets.values()) {
+          if (!dom || bkt.count > dom.count) dom = bkt;
+        }
+        if (dom && dom.count > 0) {
+          bgRgb = {
+            r: Math.round(dom.sr / dom.count),
+            g: Math.round(dom.sg / dom.count),
+            b: Math.round(dom.sb / dom.count)
+          };
+        }
+
+        // Step 2: Foreground ink pixels = pixels significantly distinct from bgRgb;
+        // take top 25% farthest-from-bg pixels to eliminate anti-aliasing fringe blending
+        const inkCandidates = [];
+        let maxDist = 0;
+        for (let py = 0; py < bh; py++) {
+          for (let px = 0; px < bw; px++) {
+            const idx = (py * bw + px) * 4;
+            const r = data[idx], g = data[idx + 1], b = data[idx + 2];
+            const d = colorDistRgb({ r, g, b }, bgRgb);
+            if (d > 28) {
+              inkCandidates.push({ r, g, b, d });
+              if (d > maxDist) maxDist = d;
+            }
+          }
+        }
+
+        if (inkCandidates.length > 0) {
+          inkCandidates.sort((a, b) => b.d - a.d);
+          const takeN = Math.max(3, Math.min(inkCandidates.length, Math.ceil(inkCandidates.length * 0.25)));
+          const rs = [], gs = [], bs = [];
+          for (let k = 0; k < takeN; k++) {
+            rs.push(inkCandidates[k].r);
+            gs.push(inkCandidates[k].g);
+            bs.push(inkCandidates[k].b);
+          }
+          rs.sort((a, b) => a - b);
+          gs.sort((a, b) => a - b);
+          bs.sort((a, b) => a - b);
+          const mid = Math.floor(takeN / 2);
+          fgRgb = { r: rs[mid], g: gs[mid], b: bs[mid] };
+
+          // Snap near-pure black/dark text cleanly to prevent faint muddy gray artifacts
+          if (fgRgb.r < 28 && fgRgb.g < 28 && fgRgb.b < 28 && colorDistRgb(fgRgb, bgRgb) > 150) {
+            // Keep subtle dark tones if uniform, snap near-black <= 18 to #000000
+            if (fgRgb.r <= 18 && fgRgb.g <= 18 && fgRgb.b <= 18) {
+              fgRgb = { r: 0, g: 0, b: 0 };
+            }
+          }
+
+          // Visual boldness calibration when PDF font name is obfuscated (e.g. F1, CIDFont+F2)
+          if (fontMeta.isObfuscated && !fontMeta.bold && maxDist > 60) {
+            const strongCount = inkCandidates.filter(p => p.d >= maxDist * 0.55).length;
+            const ratio = strongCount / Math.max(1, totalPixels);
+            if (ratio >= 0.29) detectedWeight = 700;
+          }
+        } else {
+          const lum = 0.299 * bgRgb.r + 0.587 * bgRgb.g + 0.114 * bgRgb.b;
+          fgRgb = lum < 120 ? { r: 255, g: 255, b: 255 } : { r: 0, g: 0, b: 0 };
+        }
+      } catch (_) {}
+
+      const hasShading = colorDistRgb(bgRgb, pageBgRgb) > 16;
+
+      // Step 3: Calibrate horizontal font metric ratio against actual PDF advance width
+      let metricScaleX = 1.0;
+      const cleanOrig = (origText || "").trim();
+      if (cleanOrig.length > 0 && (x1Pt - x0Pt) > 1) {
+        const mCtx = getPdfMeasureCtx();
+        mCtx.font = buildCanvasFontSpec(fontMeta, fontSizePt, detectedWeight);
+        const measured = mCtx.measureText(cleanOrig).width;
+        if (measured > 1) {
+          const ratio = (x1Pt - x0Pt) / measured;
+          // Only apply gentle proportional width match within realistic glyph variance
+          metricScaleX = Math.max(0.80, Math.min(1.22, ratio));
+        }
+      }
+
+      return {
+        bgRgb,
+        bgHex: rgbToHex(bgRgb.r, bgRgb.g, bgRgb.b),
+        fgRgb,
+        fgHex: rgbToHex(fgRgb.r, fgRgb.g, fgRgb.b),
+        hasShading,
+        weight: detectedWeight,
+        metricScaleX
+      };
+    }
+
+    function detectShadingPillBounds(baseCtx, scale, x0Pt, x1Pt, midYPt, bgRgb, pageBgRgb) {
+      // Scan horizontally outward from a shaded token to locate the exact PDF highlight/shading rectangle edges
+      if (colorDistRgb(bgRgb, pageBgRgb) <= 16) {
+        return { pillLeft: x0Pt, pillRight: x1Pt };
+      }
+      const cw = baseCtx.canvas.width;
+      const ch = baseCtx.canvas.height;
+      const yPx = Math.max(0, Math.min(ch - 1, Math.round(midYPt * scale)));
+      const rowImg = baseCtx.getImageData(0, yPx, cw, 1).data;
+      const matchesBg = (px) => {
+        const i = px * 4;
+        const c = { r: rowImg[i], g: rowImg[i + 1], b: rowImg[i + 2] };
+        return colorDistRgb(c, bgRgb) <= 22 || colorDistRgb(c, pageBgRgb) > 22;
+      };
+      let lx = Math.max(0, Math.floor(x0Pt * scale));
+      const minLx = Math.max(0, lx - Math.round(18 * scale));
+      while (lx > minLx) {
+        const i = (lx - 1) * 4;
+        const c = { r: rowImg[i], g: rowImg[i + 1], b: rowImg[i + 2] };
+        if (colorDistRgb(c, bgRgb) > 22) break;
+        lx--;
+      }
+      let rx = Math.min(cw - 1, Math.ceil(x1Pt * scale));
+      const maxRx = Math.min(cw - 1, rx + Math.round(18 * scale));
+      while (rx < maxRx) {
+        const i = (rx + 1) * 4;
+        const c = { r: rowImg[i], g: rowImg[i + 1], b: rowImg[i + 2] };
+        if (colorDistRgb(c, bgRgb) > 22) break;
+        rx++;
+      }
+      return {
+        pillLeft: Math.min(x0Pt, lx / scale),
+        pillRight: Math.max(x1Pt, (rx + 1) / scale)
+      };
+    }
+
+    function detectColumnGutter(rows, pageWidthPt, pageHeightPt) {
+      // Detect genuine 2-column song charts (e.g. Verse on left half, Chorus on right half)
+      // while NEVER falsely splitting single-column wide-spaced chord lines.
+      const bodyRows = rows.filter(r => r.y >= pageHeightPt * 0.11 && r.y <= pageHeightPt * 0.92);
+      if (bodyRows.length < 8) return null;
+
+      const binSize = 2;
+      const numBins = Math.ceil(pageWidthPt / binSize);
+      const occupied = new Uint16Array(numBins);
+
+      // Mark horizontal span of each contiguous text chunk (joining adjacent items separated by < 18pt)
+      for (const row of bodyRows) {
+        if (row.items.length === 0) continue;
+        let segStart = row.items[0].x;
+        let segEnd = row.items[0].x + row.items[0].w;
+        const segs = [];
+        for (let i = 1; i < row.items.length; i++) {
+          const it = row.items[i];
+          if (it.x - segEnd < 18) {
+            segEnd = Math.max(segEnd, it.x + it.w);
+          } else {
+            segs.push([segStart, segEnd]);
+            segStart = it.x;
+            segEnd = it.x + it.w;
+          }
+        }
+        segs.push([segStart, segEnd]);
+        for (const [s0, s1] of segs) {
+          const b0 = Math.max(0, Math.floor(s0 / binSize));
+          const b1 = Math.min(numBins - 1, Math.ceil(s1 / binSize));
+          for (let b = b0; b <= b1; b++) occupied[b]++;
+        }
+      }
+
+      const startBin = Math.floor((pageWidthPt * 0.30) / binSize);
+      const endBin = Math.ceil((pageWidthPt * 0.70) / binSize);
+      const maxAllowedCrossing = Math.max(1, Math.floor(bodyRows.length * 0.08));
+
+      let bestStart = -1;
+      let bestLen = 0;
+      let curStart = -1;
+      for (let b = startBin; b <= endBin; b++) {
+        if (occupied[b] <= maxAllowedCrossing) {
+          if (curStart < 0) curStart = b;
+        } else {
+          if (curStart >= 0 && (b - curStart) > bestLen) {
+            bestStart = curStart;
+            bestLen = b - curStart;
+          }
+          curStart = -1;
+        }
+      }
+      if (curStart >= 0 && (endBin - curStart + 1) > bestLen) {
+        bestStart = curStart;
+        bestLen = endBin - curStart + 1;
+      }
+
+      const gutterWidthPt = bestLen * binSize;
+      if (bestStart < 0 || gutterWidthPt < 18) return null;
+      const gutterX = (bestStart + bestLen / 2) * binSize;
+
+      // Verify substantial content exists independently on BOTH sides of the gutter
+      let leftOnlyRows = 0;
+      let rightOnlyRows = 0;
+      let splitRows = 0;
+      for (const row of bodyRows) {
+        const hasL = row.items.some(it => (it.x + it.w * 0.5) < gutterX);
+        const hasR = row.items.some(it => (it.x + it.w * 0.5) > gutterX);
+        if (hasL && hasR) splitRows++;
+        else if (hasL) leftOnlyRows++;
+        else if (hasR) rightOnlyRows++;
+      }
+      if (splitRows + leftOnlyRows < 4 || splitRows + rightOnlyRows < 4 || splitRows < 3) {
+        return null;
+      }
+      return { gutterX, gutterWidthPt };
+    }
+
+    function assembleVisualLineFromItems(rawItems, colIdx, colMinX, colMaxX) {
+      rawItems.sort((a, b) => a.x - b.x);
+
+      // Deduplicate faux-bold / double-stamped overlapping PDF text runs (e.g. "A" stamped twice -> "AAmaj7")
+      const items = [];
+      for (const cur of rawItems) {
+        const prev = items.length > 0 ? items[items.length - 1] : null;
+        if (prev && Math.abs(cur.y - prev.y) <= Math.max(1.5, cur.fontSize * 0.16)) {
+          const sameText = cur.str === prev.str;
+          const xNearSame = Math.abs(cur.x - prev.x) <= Math.max(1.4, cur.fontSize * 0.15);
+          if (sameText && xNearSame) {
+            // Faux-bold double-stamp: keep union width and promote weight to bold
+            prev.w = Math.max(prev.w, (cur.x + cur.w) - prev.x);
+            if ((prev.fontMeta.weight || 400) < 700) {
+              prev.fontMeta = { ...prev.fontMeta, bold: true, weight: 700 };
+            }
+            continue;
+          }
+          // Check 1-char faux-bold duplicate right at the boundary (e.g. "A" overlapping start of "Amaj7")
+          if (prev.str.length === 1 && cur.str.startsWith(prev.str) && xNearSame) {
+            items[items.length - 1] = {
+              ...cur,
+              x: Math.min(prev.x, cur.x),
+              w: Math.max(cur.x + cur.w, prev.x + prev.w) - Math.min(prev.x, cur.x)
+            };
+            continue;
+          }
+          if (cur.str.length === 1 && prev.str.endsWith(cur.str)) {
+            const prevCharW = prev.w / Math.max(1, prev.str.length);
+            if (cur.x <= prev.x + prev.w - prevCharW * 0.45 && cur.x >= prev.x + prev.w - prevCharW * 1.45) {
+              prev.w = Math.max(prev.w, (cur.x + cur.w) - prev.x);
+              continue;
+            }
+          }
+        }
+        items.push(cur);
+      }
+
+      const mCtx = getPdfMeasureCtx();
+      let text = "";
+      const charMeta = [];
+
+      // Weighted average baseline & dominant font size (ignoring tiny superscripts)
+      const mainItems = items.filter(it => !it.isSuperscript);
+      const refItems = mainItems.length > 0 ? mainItems : items;
+      let sumY = 0, sumFs = 0, sumW = 0;
+      for (const it of refItems) {
+        const wt = Math.max(1, it.str.trim().length);
+        sumY += it.y * wt;
+        sumFs += it.fontSize * wt;
+        sumW += wt;
+      }
+      const baselineY = sumY / Math.max(1, sumW);
+      const avgFontSize = sumFs / Math.max(1, sumW);
+
+      let prevEndX = null;
+      let minX = Infinity;
+      let maxX = -Infinity;
+      let minTopY = Infinity;
+      let maxBotY = -Infinity;
+
+      for (const it of items) {
+        if (prevEndX !== null) {
+          const gap = it.x - prevEndX;
+          const spaceW = Math.max(2.4, Math.min(it.fontSize, avgFontSize) * 0.27);
+          if (gap > spaceW * 0.42) {
+            const nSpaces = Math.max(1, Math.min(40, Math.round(gap / spaceW)));
+            const stepW = gap / nSpaces;
+            for (let s = 0; s < nSpaces; s++) {
+              text += " ";
+              charMeta.push({
+                ch: " ",
+                isSyntheticSpace: true,
+                x0: prevEndX + s * stepW,
+                x1: prevEndX + (s + 1) * stepW,
+                y: baselineY,
+                topY: baselineY - avgFontSize * 0.85,
+                botY: baselineY + avgFontSize * 0.22,
+                fontSize: avgFontSize,
+                fontMeta: it.fontMeta,
+                item: it
+              });
+            }
+          }
+        }
+
+        const str = it.str;
+        const itemTopY = it.y - it.fontSize * it.fontMeta.ascent;
+        const itemBotY = it.y + it.fontSize * Math.abs(it.fontMeta.descent);
+        minX = Math.min(minX, it.x);
+        maxX = Math.max(maxX, it.x + it.w);
+        minTopY = Math.min(minTopY, itemTopY);
+        maxBotY = Math.max(maxBotY, itemBotY);
+
+        mCtx.font = buildCanvasFontSpec(it.fontMeta, it.fontSize);
+        const totalMeas = mCtx.measureText(str).width;
+
+        if (str.length === 1 || totalMeas <= 0.1) {
+          const perChar = it.w / Math.max(1, str.length);
+          for (let ci = 0; ci < str.length; ci++) {
+            text += str[ci];
+            charMeta.push({
+              ch: str[ci],
+              isSyntheticSpace: false,
+              x0: it.x + ci * perChar,
+              x1: it.x + (ci + 1) * perChar,
+              y: it.y,
+              topY: itemTopY,
+              botY: itemBotY,
+              fontSize: it.fontSize,
+              fontMeta: it.fontMeta,
+              isSuperscript: Boolean(it.isSuperscript),
+              item: it
+            });
+          }
+        } else {
+          let prevFrac = 0;
+          for (let ci = 0; ci < str.length; ci++) {
+            const nextFrac = mCtx.measureText(str.slice(0, ci + 1)).width / totalMeas;
+            text += str[ci];
+            charMeta.push({
+              ch: str[ci],
+              isSyntheticSpace: false,
+              x0: it.x + it.w * prevFrac,
+              x1: it.x + it.w * nextFrac,
+              y: it.y,
+              topY: itemTopY,
+              botY: itemBotY,
+              fontSize: it.fontSize,
+              fontMeta: it.fontMeta,
+              isSuperscript: Boolean(it.isSuperscript),
+              item: it
+            });
+            prevFrac = nextFrac;
+          }
+        }
+        prevEndX = Math.max(prevEndX ?? -Infinity, it.x + it.w);
+      }
+
+      const colW = colMaxX - colMinX;
+      const leftMargin = minX - colMinX;
+      const rightMargin = colMaxX - maxX;
+      let alignment = "left";
+      if (colW > 120) {
+        if (rightMargin <= Math.max(72, colW * 0.16) && leftMargin > Math.max(90, colW * 0.25) && rightMargin < leftMargin * 0.55) {
+          alignment = "right";
+        } else if (Math.abs(leftMargin - rightMargin) <= 22 && leftMargin > Math.max(48, colW * 0.12)) {
+          alignment = "center";
+        }
+      }
+
+      return {
+        text,
+        charMeta,
+        items,
+        colIdx,
+        colMinX,
+        colMaxX,
+        x0: minX,
+        x1: maxX,
+        y: baselineY,
+        topY: minTopY,
+        botY: maxBotY,
+        fontSize: avgFontSize,
+        primaryFont: refItems[0].fontMeta,
+        alignment,
+        prevLineBottom: -Infinity,
+        nextLineTop: Infinity
+      };
+    }
+
+    async function buildPageModelFromPdfPage(pdfPage, pageNum) {
+      const viewport1x = pdfPage.getViewport({ scale: 1.0 });
+      const widthPt = viewport1x.width;
+      const heightPt = viewport1x.height;
+      const rotation = pdfPage.rotate || 0;
+
+      // Render high-DPI master background canvas (kept pristine for instant re-transposition)
+      const maxDim = Math.max(widthPt, heightPt);
+      const baseScale = Math.min(2.5, Math.max(1.5, 2400 / Math.max(1, maxDim)));
+      const renderViewport = pdfPage.getViewport({ scale: baseScale });
+      const baseCanvas = document.createElement("canvas");
+      baseCanvas.width = Math.round(renderViewport.width);
+      baseCanvas.height = Math.round(renderViewport.height);
+      const baseCtx = baseCanvas.getContext("2d", { willReadFrequently: true });
+      baseCtx.fillStyle = "#ffffff";
+      baseCtx.fillRect(0, 0, baseCanvas.width, baseCanvas.height);
+
+      await pdfPage.render({
+        canvasContext: baseCtx,
+        viewport: renderViewport
+      }).promise;
+
+      const pageBgRgb = detectPageBackgroundColor(baseCtx, baseCanvas.width, baseCanvas.height);
+
+      // Extract text content AFTER render so PDF.js commonObjs font descriptors are fully populated
+      const textContent = await pdfPage.getTextContent({ includeMarkedContent: false });
+      const styles = textContent.styles || {};
+      const fontCache = new Map();
+      const getFontMeta = (fn) => {
+        if (!fontCache.has(fn)) {
+          fontCache.set(fn, resolvePdfFontMeta(pdfPage, fn, styles[fn]));
+        }
+        return fontCache.get(fn);
+      };
+
+      const rawItems = [];
+      for (const item of textContent.items || []) {
+        if (!item || typeof item.str !== "string" || item.str.length === 0) continue;
+        // Skip whitespace-only items that carry zero visual ink (we reconstruct spaces from exact X gaps)
+        if (!item.str.trim()) continue;
+        const m = window.pdfjsLib.Util.transform(viewport1x.transform, item.transform);
+        const angle = Math.atan2(m[1], m[0]);
+        // Skip strongly rotated watermarks/sideways text
+        if (Math.abs(angle) > 0.15) continue;
+        const fontSize = Math.hypot(m[2], m[3]) || Math.hypot(m[0], m[1]) || 12;
+        if (fontSize < 3 || fontSize > 160) continue;
+        const x = m[4];
+        const y = m[5];
+        const w = (typeof item.width === "number" && item.width > 0)
+          ? item.width
+          : (fontSize * 0.52 * item.str.length);
+        const fontMeta = getFontMeta(item.fontName);
+        rawItems.push({
+          str: item.str,
+          x,
+          y,
+          w,
+          fontSize,
+          fontName: item.fontName,
+          fontMeta,
+          isSuperscript: false
+        });
+      }
+
+      // Sort top-to-bottom, then left-to-right, and cluster into horizontal rows
+      rawItems.sort((a, b) => (a.y - b.y) || (a.x - b.x));
+      const rows = [];
+      for (const it of rawItems) {
+        let bestRow = null;
+        let bestDist = Infinity;
+        for (let r = rows.length - 1; r >= Math.max(0, rows.length - 8); r--) {
+          const row = rows[r];
+          const tol = Math.max(2.6, Math.min(it.fontSize, row.fontSize) * 0.36);
+          const dy = Math.abs(it.y - row.y);
+          if (dy <= tol && dy < bestDist) {
+            bestDist = dy;
+            bestRow = row;
+          } else if (
+            // Superscript chord extension (e.g. raised #, b, 7, maj7 immediately to the right)
+            it.fontSize <= row.fontSize * 0.85 &&
+            it.y < row.y &&
+            (row.y - it.y) <= row.fontSize * 0.52 &&
+            /^[#b♯♭0-9mM+\-°øΔ()\/a-zA-Z]+$/.test(it.str.trim())
+          ) {
+            const nearRight = row.items.some(prev => {
+              const gap = it.x - (prev.x + prev.w);
+              return gap >= -1.5 && gap <= row.fontSize * 0.45;
+            });
+            if (nearRight && (row.y - it.y) < bestDist) {
+              it.isSuperscript = true;
+              bestDist = row.y - it.y;
+              bestRow = row;
+            }
+          }
+        }
+        if (bestRow) {
+          bestRow.items.push(it);
+          if (!it.isSuperscript) {
+            const n = bestRow.items.filter(x => !x.isSuperscript).length;
+            bestRow.y = ((bestRow.y * (n - 1)) + it.y) / n;
+            bestRow.fontSize = Math.max(bestRow.fontSize, it.fontSize);
+          }
+        } else {
+          rows.push({ y: it.y, fontSize: it.fontSize, items: [it] });
+        }
+      }
+
+      rows.sort((a, b) => a.y - b.y);
+      const gutter = detectColumnGutter(rows, widthPt, heightPt);
+      const visualLines = [];
+
+      if (gutter) {
+        const headerLines = [];
+        const leftLines = [];
+        const rightLines = [];
+        const footerLines = [];
+        for (const row of rows) {
+          if (row.y < heightPt * 0.11) {
+            headerLines.push(assembleVisualLineFromItems(row.items, 0, 0, widthPt));
+          } else if (row.y > heightPt * 0.92) {
+            footerLines.push(assembleVisualLineFromItems(row.items, 0, 0, widthPt));
+          } else {
+            const lItems = row.items.filter(it => (it.x + it.w * 0.5) < gutter.gutterX);
+            const rItems = row.items.filter(it => (it.x + it.w * 0.5) >= gutter.gutterX);
+            if (lItems.length > 0) leftLines.push(assembleVisualLineFromItems(lItems, 1, 0, gutter.gutterX));
+            if (rItems.length > 0) rightLines.push(assembleVisualLineFromItems(rItems, 2, gutter.gutterX, widthPt));
+          }
+        }
+        visualLines.push(...headerLines, ...leftLines, ...rightLines, ...footerLines);
+      } else {
+        for (const row of rows) {
+          visualLines.push(assembleVisualLineFromItems(row.items, 0, 0, widthPt));
+        }
+      }
+
+      // Compute nearest vertical neighbors per column so masks NEVER bleed into adjacent lines
+      for (let i = 0; i < visualLines.length; i++) {
+        const cur = visualLines[i];
+        let prevBot = -Infinity;
+        let nextTop = Infinity;
+        for (let j = 0; j < visualLines.length; j++) {
+          if (i === j) continue;
+          const other = visualLines[j];
+          // Must overlap horizontally to be a vertical obstacle
+          if (other.x1 < cur.x0 - 4 || other.x0 > cur.x1 + 4) continue;
+          if (other.y < cur.y && other.botY > prevBot) prevBot = other.botY;
+          if (other.y > cur.y && other.topY < nextTop) nextTop = other.topY;
+        }
+        cur.prevLineBottom = prevBot;
+        cur.nextLineTop = nextTop;
+      }
+
+      // Learn visual style (ink color, background shading, weight, metricScaleX) for each line once
+      for (const line of visualLines) {
+        line.visualStyle = sampleTokenVisualStyleFromCanvas(
+          baseCtx,
+          baseScale,
+          line.x0,
+          line.x1,
+          line.topY,
+          line.botY,
+          pageBgRgb,
+          line.primaryFont,
+          line.text.trim(),
+          line.fontSize
+        );
+      }
+
+      return {
+        pageNum,
+        widthPt,
+        heightPt,
+        rotation,
+        viewport1x,
+        baseScale,
+        baseCanvas,
+        baseCtx,
+        pageBgRgb,
+        gutter,
+        visualLines,
+        fontsUsed: [...fontCache.values()],
+        textItemCount: rawItems.length
+      };
+    }
+
+    function computePdfStyleProfile(pages) {
+      const first = pages[0];
+      const w = Math.round(first.widthPt);
+      const h = Math.round(first.heightPt);
+      let paperName = `${w}×${h}pt`;
+      if (Math.abs(w - 595) <= 6 && Math.abs(h - 842) <= 6) paperName = "A4 直向";
+      else if (Math.abs(w - 842) <= 6 && Math.abs(h - 595) <= 6) paperName = "A4 橫向";
+      else if (Math.abs(w - 612) <= 6 && Math.abs(h - 792) <= 6) paperName = "Letter 直向";
+      else if (Math.abs(w - 792) <= 6 && Math.abs(h - 612) <= 6) paperName = "Letter 橫向";
+
+      const fontCounts = new Map();
+      const shadingColors = new Set();
+      const chordColors = new Set();
+      let chordLineCount = 0;
+      let chordTokenCount = 0;
+      let metaLineCount = 0;
+      let hasTwoColumn = false;
+      let totalTextItems = 0;
+      let chordSizeSum = 0;
+      let lyricSizeSum = 0;
+      let lyricLineCount = 0;
+
+      for (const pg of pages) {
+        totalTextItems += pg.textItemCount;
+        if (pg.gutter) hasTwoColumn = true;
+        for (const ln of pg.visualLines) {
+          const fn = ln.primaryFont.displayLabel;
+          fontCounts.set(fn, (fontCounts.get(fn) || 0) + ln.text.trim().length);
+          if (ln.visualStyle && ln.visualStyle.hasShading) {
+            shadingColors.add(ln.visualStyle.bgHex);
+          }
+          if (matchMetadataKey(ln.text)) {
+            metaLineCount++;
+          } else if (isChordLine(ln.text)) {
+            chordLineCount++;
+            chordSizeSum += ln.fontSize;
+            if (ln.visualStyle) chordColors.add(ln.visualStyle.fgHex);
+            const norm = normalizeFullwidthForMatch(ln.text);
+            CHORD_TOKEN_REGEX.lastIndex = 0;
+            for (const m of norm.matchAll(CHORD_TOKEN_REGEX)) {
+              if (isValidChordToken(m[1], m[2] || "", m[3])) chordTokenCount++;
+            }
+          } else if (ln.text.trim().length > 0) {
+            const norm = normalizeFullwidthForMatch(ln.text);
+            INLINE_BRACKET_REGEX.lastIndex = 0;
+            const bm = [...norm.matchAll(INLINE_BRACKET_REGEX)].filter(m => isValidChordToken(m[1], m[2] || "", m[3]));
+            if (bm.length > 0) {
+              chordLineCount++;
+              chordTokenCount += bm.length;
+              chordSizeSum += ln.fontSize;
+              if (ln.visualStyle) chordColors.add(ln.visualStyle.fgHex);
+            } else if (!isSectionHeader(ln.text)) {
+              lyricLineCount++;
+              lyricSizeSum += ln.fontSize;
+            }
+          }
+        }
+      }
+
+      const topFonts = [...fontCounts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(e => e[0]);
+
+      return {
+        pageCount: pages.length,
+        paperName,
+        hasTwoColumn,
+        topFonts,
+        shadingColors: [...shadingColors].slice(0, 3),
+        chordColors: [...chordColors].slice(0, 3),
+        chordLineCount,
+        chordTokenCount,
+        metaLineCount,
+        avgChordPt: chordLineCount > 0 ? Math.round(chordSizeSum / chordLineCount) : null,
+        avgLyricPt: lyricLineCount > 0 ? Math.round(lyricSizeSum / lyricLineCount) : null,
+        isScannedPdf: totalTextItems === 0
+      };
+    }
+
+    async function parsePdfDocument(pdfUint8, onProgress = null) {
+      const pdfjsLib = await ensurePdfJsLoaded();
+      // Pass a clean copy because PDF.js transfers the ArrayBuffer to the Web Worker
+      const dataCopy = new Uint8Array(pdfUint8);
+      const loadingTask = pdfjsLib.getDocument({
+        data: dataCopy,
+        cMapUrl: PDFJS_CMAP_URL,
+        cMapPacked: true,
+        standardFontDataUrl: PDFJS_STD_FONT_URL,
+        disableFontFace: false,
+        useSystemFonts: true
+      });
+      const pdfDoc = await loadingTask.promise;
+      const pages = [];
+      const plainLines = [];
+
+      for (let p = 1; p <= pdfDoc.numPages; p++) {
+        if (onProgress) onProgress(p, pdfDoc.numPages);
+        const pdfPage = await pdfDoc.getPage(p);
+        const pageModel = await buildPageModelFromPdfPage(pdfPage, p);
+        pages.push(pageModel);
+        if (p > 1 && plainLines.length > 0) plainLines.push("");
+        for (const ln of pageModel.visualLines) {
+          plainLines.push(ln.text);
+        }
+      }
+
+      const styleProfile = computePdfStyleProfile(pages);
+      return {
+        numPages: pdfDoc.numPages,
+        pages,
+        styleProfile,
+        plainLines,
+        plainText: plainLines.join("\n")
+      };
+    }
+
+    // =========================================================================
+    // 3E. 1:1 PDF Visual Replica Transposition & High-DPI Canvas Renderer
+    // =========================================================================
+    function getCharRangeBounds(line, startIdx, endIdx) {
+      let x0 = Infinity, x1 = -Infinity, topY = Infinity, botY = -Infinity;
+      let refMeta = null;
+      for (let i = startIdx; i < endIdx && i < line.charMeta.length; i++) {
+        const cm = line.charMeta[i];
+        if (!cm) continue;
+        x0 = Math.min(x0, cm.x0);
+        x1 = Math.max(x1, cm.x1);
+        topY = Math.min(topY, cm.topY);
+        botY = Math.max(botY, cm.botY);
+        if (!refMeta && !cm.isSyntheticSpace && !cm.isSuperscript) refMeta = cm;
+      }
+      if (!refMeta) {
+        refMeta = line.charMeta[Math.min(startIdx, line.charMeta.length - 1)];
+      }
+      const fontMeta = refMeta ? refMeta.fontMeta : line.primaryFont;
+      const fontSize = refMeta ? refMeta.fontSize : line.fontSize;
+      const baselineY = refMeta ? refMeta.y : line.y;
+      return { x0, x1, topY, botY, baselineY, fontMeta, fontSize };
+    }
+
+    function computeSafeMaskVertical(origText, baselineY, topY, botY, fontSize, line) {
+      // Tight yet clean vertical bounds: erase full glyph + optical overshoot without touching adjacent lines
+      const hasDesc = /[\/()\[\]jgpqy,_]/.test(origText);
+      const tightBot = hasDesc
+        ? Math.max(botY, baselineY + fontSize * 0.28)
+        : Math.max(Math.min(botY, baselineY + fontSize * 0.22), baselineY + fontSize * 0.17);
+      let mTop = Math.min(topY, baselineY - fontSize * 0.88) - 0.8;
+      let mBot = tightBot + 0.8;
+      if (line.prevLineBottom > -Infinity) {
+        mTop = Math.max(mTop, line.prevLineBottom + 0.6);
+      }
+      if (line.nextLineTop < Infinity) {
+        mBot = Math.min(mBot, line.nextLineTop - 0.6);
+      }
+      if (mBot <= mTop + 2) {
+        mTop = topY;
+        mBot = botY;
+      }
+      return { maskTopY: mTop, maskBotY: mBot };
+    }
+
+    function computePdfPagePatches(pageModel, srcKey, dstKey, accPref, mode, capoInfo = null) {
+      const patches = [];
+      const srcSemi = NOTE_TO_SEMI[srcKey] ?? 2;
+      const effectiveKey = capoInfo ? capoInfo.playKey : dstKey;
+      const dstSemi = NOTE_TO_SEMI[effectiveKey] ?? srcSemi;
+      const useFlats = shouldUseFlats(effectiveKey, accPref);
+      const isIdentity = (srcSemi === dstSemi && accPref === "auto" && mode === "chord");
+      const mCtx = getPdfMeasureCtx();
+
+      for (const line of pageModel.visualLines) {
+        const text = line.text;
+        if (!text || !text.trim()) continue;
+        const normLine = normalizeFullwidthForMatch(text);
+
+        // 1. Metadata Key Line (e.g. "Upper Room/活水/D", "Key: G", "G key / 可萌")
+        const metaMatch = matchMetadataKey(text);
+        if (metaMatch) {
+          let label = dstKey;
+          if (mode === "number") label = `${dstKey} (級數)`;
+          else if (capoInfo && capoInfo.capo > 0) label = `${dstKey} (Capo ${capoInfo.capo} Play ${capoInfo.playKey})`;
+          if (label.includes("(") && /^[A-Za-z]/.test(text.slice(metaMatch.end))) {
+            label += " ";
+          }
+          if (label === metaMatch.key) continue;
+
+          const bounds = getCharRangeBounds(line, metaMatch.start, metaMatch.end);
+          if (!Number.isFinite(bounds.x0)) continue;
+          const tokStyle = sampleTokenVisualStyleFromCanvas(
+            pageModel.baseCtx, pageModel.baseScale,
+            bounds.x0, bounds.x1, bounds.topY, bounds.botY,
+            pageModel.pageBgRgb, bounds.fontMeta, metaMatch.key, bounds.fontSize
+          );
+
+          mCtx.font = buildCanvasFontSpec(bounds.fontMeta, bounds.fontSize, tokStyle.weight);
+          const newKeyW = mCtx.measureText(label).width * tokStyle.metricScaleX;
+          const origKeyW = bounds.x1 - bounds.x0;
+
+          // Find next non-space char after metaMatch.end
+          let nextCharX = line.colMaxX - 10;
+          let hasTrailingText = false;
+          for (let ci = metaMatch.end; ci < line.charMeta.length; ci++) {
+            if (!line.charMeta[ci].isSyntheticSpace && line.charMeta[ci].ch.trim()) {
+              nextCharX = line.charMeta[ci].x0 - 1.5;
+              hasTrailingText = true;
+              break;
+            }
+          }
+          const availW = Math.max(origKeyW, nextCharX - bounds.x0);
+          const { maskTopY, maskBotY } = computeSafeMaskVertical(metaMatch.key, bounds.baselineY, bounds.topY, bounds.botY, bounds.fontSize, line);
+
+          const isRightAlignedTrailingKey = (line.alignment === "right" && !hasTrailingText && newKeyW > origKeyW + 2);
+          const needsLineReflow = isRightAlignedTrailingKey || (newKeyW > availW * 1.25);
+
+          if (needsLineReflow) {
+            const newFullText = text.slice(0, metaMatch.start) + label + text.slice(metaMatch.end);
+            const lineStyle = line.visualStyle || tokStyle;
+            const { pillLeft, pillRight } = detectShadingPillBounds(
+              pageModel.baseCtx, pageModel.baseScale,
+              line.x0, line.x1, (line.topY + line.botY) * 0.5,
+              lineStyle.bgRgb, pageModel.pageBgRgb
+            );
+            const vMask = computeSafeMaskVertical(text, line.y, line.topY, line.botY, line.fontSize, line);
+            mCtx.font = buildCanvasFontSpec(line.primaryFont, line.fontSize, lineStyle.weight);
+            const newLineW = mCtx.measureText(newFullText).width * lineStyle.metricScaleX;
+            const maxLineW = Math.max(60, line.colMaxX - line.colMinX - 24);
+            const fitScaleX = newLineW > maxLineW ? (maxLineW / newLineW) * lineStyle.metricScaleX : lineStyle.metricScaleX;
+            const actualDrawW = mCtx.measureText(newFullText).width * fitScaleX;
+
+            let drawX = line.x0;
+            if (line.alignment === "right") {
+              drawX = Math.max(line.colMinX + 12, line.x1 - actualDrawW);
+            } else if (line.alignment === "center") {
+              const cx = (line.x0 + line.x1) * 0.5;
+              drawX = Math.max(line.colMinX + 12, cx - actualDrawW * 0.5);
+            }
+
+            const eraseLeft = Math.min(pillLeft, line.x0, drawX) - 2;
+            const eraseRight = Math.max(pillRight, line.x1, drawX + actualDrawW) + 2;
+            const pillPadL = Math.max(2, line.x0 - pillLeft);
+            const pillPadR = Math.max(2, pillRight - line.x1);
+
+            patches.push({
+              kind: "metadata-line",
+              origText: text,
+              newText: newFullText,
+              maskX0: eraseLeft,
+              maskX1: eraseRight,
+              maskTopY: vMask.maskTopY,
+              maskBotY: vMask.maskBotY,
+              eraseBgHex: lineStyle.hasShading ? pageModel.pageBgRgb.hex : lineStyle.bgHex,
+              eraseBgRgb: lineStyle.hasShading ? pageModel.pageBgRgb : lineStyle.bgRgb,
+              pillFillHex: lineStyle.hasShading ? lineStyle.bgHex : null,
+              pillFillRgb: lineStyle.hasShading ? lineStyle.bgRgb : null,
+              pillX0: drawX - pillPadL,
+              pillX1: drawX + actualDrawW + pillPadR,
+              drawX,
+              drawW: actualDrawW,
+              baselineY: line.y,
+              fontSize: line.fontSize,
+              fontMeta: line.primaryFont,
+              weight: lineStyle.weight,
+              fgHex: lineStyle.fgHex,
+              fgRgb: lineStyle.fgRgb,
+              scaleX: fitScaleX,
+              canUseNativeVectorPdf: false
+            });
+          } else {
+            const fitScaleX = newKeyW > availW ? (availW / newKeyW) * tokStyle.metricScaleX : tokStyle.metricScaleX;
+            const actualDrawW = mCtx.measureText(label).width * fitScaleX;
+            const padL = Math.min(1.2, Math.max(0.4, bounds.x0 - line.colMinX));
+            const padR = Math.min(1.2, Math.max(0.4, (nextCharX - bounds.x1) * 0.4));
+            patches.push({
+              kind: "metadata",
+              origText: metaMatch.key,
+              newText: label,
+              maskX0: bounds.x0 - padL,
+              maskX1: bounds.x1 + padR,
+              maskTopY,
+              maskBotY,
+              eraseBgHex: tokStyle.bgHex,
+              eraseBgRgb: tokStyle.bgRgb,
+              pillFillHex: null,
+              pillFillRgb: null,
+              drawX: bounds.x0,
+              drawW: actualDrawW,
+              baselineY: bounds.baselineY,
+              fontSize: bounds.fontSize,
+              fontMeta: bounds.fontMeta,
+              weight: tokStyle.weight,
+              fgHex: tokStyle.fgHex,
+              fgRgb: tokStyle.fgRgb,
+              scaleX: fitScaleX,
+              canUseNativeVectorPdf: isPureWinAnsi(label) && bounds.fontMeta.isExactStandard && Math.abs(fitScaleX - 1) < 0.06
+            });
+          }
+          continue;
+        }
+
+        if (isIdentity) continue;
+
+        // 2. Inline Bracket Chords [G] within lyrics
+        INLINE_BRACKET_REGEX.lastIndex = 0;
+        const bracketMatches = [...normLine.matchAll(INLINE_BRACKET_REGEX)].filter(m => isValidChordToken(m[1], m[2] || "", m[3]));
+        if (bracketMatches.length > 0) {
+          let needsFullLine = false;
+          const subPatches = [];
+          for (const bm of bracketMatches) {
+            const newTok = "[" + transposeChordParts(bm[1], bm[2] || "", bm[3], srcSemi, dstSemi, useFlats, mode, accPref) + "]";
+            if (newTok === bm[0]) continue;
+            const b = getCharRangeBounds(line, bm.index, bm.index + bm[0].length);
+            if (!Number.isFinite(b.x0)) continue;
+            const st = sampleTokenVisualStyleFromCanvas(
+              pageModel.baseCtx, pageModel.baseScale,
+              b.x0, b.x1, b.topY, b.botY,
+              pageModel.pageBgRgb, b.fontMeta, bm[0], b.fontSize
+            );
+            mCtx.font = buildCanvasFontSpec(b.fontMeta, b.fontSize, st.weight);
+            const natW = mCtx.measureText(newTok).width * st.metricScaleX;
+            const slotW = b.x1 - b.x0;
+            if (natW > slotW * 1.42) {
+              needsFullLine = true;
+              break;
+            }
+            const fitScaleX = natW > slotW ? (slotW / natW) * st.metricScaleX : st.metricScaleX;
+            const vMask = computeSafeMaskVertical(bm[0], b.baselineY, b.topY, b.botY, b.fontSize, line);
+            subPatches.push({
+              kind: "chord",
+              origText: bm[0],
+              newText: newTok,
+              maskX0: b.x0 - 0.6,
+              maskX1: b.x1 + 0.6,
+              maskTopY: vMask.maskTopY,
+              maskBotY: vMask.maskBotY,
+              eraseBgHex: st.bgHex,
+              eraseBgRgb: st.bgRgb,
+              pillFillHex: null,
+              pillFillRgb: null,
+              drawX: b.x0,
+              drawW: mCtx.measureText(newTok).width * fitScaleX,
+              baselineY: b.baselineY,
+              fontSize: b.fontSize,
+              fontMeta: b.fontMeta,
+              weight: st.weight,
+              fgHex: st.fgHex,
+              fgRgb: st.fgRgb,
+              scaleX: fitScaleX,
+              canUseNativeVectorPdf: isPureWinAnsi(newTok) && b.fontMeta.isExactStandard && Math.abs(fitScaleX - 1) < 0.06
+            });
+          }
+          if (!needsFullLine) {
+            patches.push(...subPatches);
+          } else {
+            const newFullText = transposeSingleLine(text, srcKey, dstKey, accPref, mode, capoInfo);
+            const st = line.visualStyle;
+            const vMask = computeSafeMaskVertical(text, line.y, line.topY, line.botY, line.fontSize, line);
+            mCtx.font = buildCanvasFontSpec(line.primaryFont, line.fontSize, st.weight);
+            const natW = mCtx.measureText(newFullText).width * st.metricScaleX;
+            const maxW = Math.max(line.x1 - line.x0, line.colMaxX - line.x0 - 10);
+            const fitScaleX = natW > maxW ? (maxW / natW) * st.metricScaleX : st.metricScaleX;
+            patches.push({
+              kind: "chord-line",
+              origText: text,
+              newText: newFullText,
+              maskX0: line.x0 - 1.5,
+              maskX1: line.x1 + 1.5,
+              maskTopY: vMask.maskTopY,
+              maskBotY: vMask.maskBotY,
+              eraseBgHex: st.bgHex,
+              eraseBgRgb: st.bgRgb,
+              pillFillHex: null,
+              pillFillRgb: null,
+              drawX: line.x0,
+              drawW: mCtx.measureText(newFullText).width * fitScaleX,
+              baselineY: line.y,
+              fontSize: line.fontSize,
+              fontMeta: line.primaryFont,
+              weight: st.weight,
+              fgHex: st.fgHex,
+              fgRgb: st.fgRgb,
+              scaleX: fitScaleX,
+              canUseNativeVectorPdf: false
+            });
+          }
+          continue;
+        }
+
+        // 3. Standard Chord Line (grid barlines OR free-positioned chords above lyrics)
+        if (!isChordLine(text)) continue;
+
+        CHORD_TOKEN_REGEX.lastIndex = 0;
+        const allMatches = [...normLine.matchAll(CHORD_TOKEN_REGEX)].filter(m => isValidChordToken(m[1], m[2] || "", m[3]));
+        if (allMatches.length === 0) continue;
+
+        // Partition chord line into bar segments separated by vertical barlines (│, |, ｜)
+        // so that if ONE tight bar (e.g. │B- - - or │Am7- - -│) needs local reflow,
+        // ALL barlines and ALL other bars stay 100% locked above their exact lyrics!
+        const barSegments = [];
+        let segStart = 0;
+        for (let ci = 0; ci < text.length; ci++) {
+          if (BARLINE_CHAR_REGEX.test(text[ci])) {
+            if (ci > segStart) barSegments.push({ start: segStart, end: ci, hasRightBar: true, rightBarIdx: ci });
+            segStart = ci + 1;
+          }
+        }
+        if (segStart < text.length) {
+          barSegments.push({ start: segStart, end: text.length, hasRightBar: false, rightBarIdx: -1 });
+        }
+
+        for (const seg of barSegments) {
+          const segMatches = allMatches.filter(m => m.index >= seg.start && (m.index + m[0].length) <= seg.end);
+          if (segMatches.length === 0) continue;
+
+          // Compute exact bar boundary coordinates (never touching the left or right │ barlines!)
+          const leftBarRightX = seg.start > 0 && line.charMeta[seg.start - 1]
+            ? line.charMeta[seg.start - 1].x1
+            : line.colMinX + 4;
+          const rightBarLeftX = seg.hasRightBar && line.charMeta[seg.rightBarIdx]
+            ? line.charMeta[seg.rightBarIdx].x0
+            : line.colMaxX - 8;
+
+          const tokenPatches = [];
+          let needsBarReflow = false;
+
+          for (const m of segMatches) {
+            const oldTok = m[0];
+            const newTok = transposeChordParts(m[1], m[2] || "", m[3], srcSemi, dstSemi, useFlats, mode, accPref);
+            if (newTok === oldTok) continue;
+
+            const startIdx = m.index;
+            const endIdx = m.index + oldTok.length;
+            const b = getCharRangeBounds(line, startIdx, endIdx);
+            if (!Number.isFinite(b.x0)) continue;
+
+            // Exact horizontal clearance within this bar
+            let prevRightX = leftBarRightX;
+            for (let ci = startIdx - 1; ci >= seg.start; ci--) {
+              if (!line.charMeta[ci].isSyntheticSpace && line.charMeta[ci].ch.trim()) {
+                prevRightX = line.charMeta[ci].x1;
+                break;
+              }
+            }
+            let nextLeftX = rightBarLeftX;
+            for (let ci = endIdx; ci < seg.end; ci++) {
+              if (!line.charMeta[ci].isSyntheticSpace && line.charMeta[ci].ch.trim()) {
+                nextLeftX = line.charMeta[ci].x0;
+                break;
+              }
+            }
+
+            const st = sampleTokenVisualStyleFromCanvas(
+              pageModel.baseCtx, pageModel.baseScale,
+              b.x0, b.x1, b.topY, b.botY,
+              pageModel.pageBgRgb, b.fontMeta, oldTok, b.fontSize
+            );
+
+            mCtx.font = buildCanvasFontSpec(b.fontMeta, b.fontSize, st.weight);
+            const natW = mCtx.measureText(newTok).width * st.metricScaleX;
+            const gapToNext = Math.max(0, nextLeftX - b.x1);
+            const rightGuard = gapToNext >= 2.0 ? 1.2 : Math.min(0.8, gapToNext * 0.4);
+            const availW = Math.max(b.x1 - b.x0, nextLeftX - b.x0 - rightGuard);
+
+            if (natW > availW * 1.32) {
+              needsBarReflow = true;
+              break;
+            }
+
+            const fitScaleX = natW > availW ? (availW / natW) * st.metricScaleX : st.metricScaleX;
+            const actualDrawW = mCtx.measureText(newTok).width * fitScaleX;
+            const padL = Math.min(0.9, Math.max(0, (b.x0 - prevRightX) * 0.28));
+            const padR = Math.min(0.9, Math.max(0, (nextLeftX - b.x1) * 0.28));
+            const vMask = computeSafeMaskVertical(oldTok, b.baselineY, b.topY, b.botY, b.fontSize, line);
+
+            tokenPatches.push({
+              kind: "chord",
+              origText: oldTok,
+              newText: newTok,
+              maskX0: b.x0 - padL,
+              maskX1: b.x1 + padR,
+              maskTopY: vMask.maskTopY,
+              maskBotY: vMask.maskBotY,
+              eraseBgHex: st.bgHex,
+              eraseBgRgb: st.bgRgb,
+              pillFillHex: null,
+              pillFillRgb: null,
+              drawX: b.x0,
+              drawW: actualDrawW,
+              baselineY: b.baselineY,
+              fontSize: b.fontSize,
+              fontMeta: b.fontMeta,
+              weight: st.weight,
+              fgHex: st.fgHex,
+              fgRgb: st.fgRgb,
+              scaleX: fitScaleX,
+              canUseNativeVectorPdf: isPureWinAnsi(newTok) && b.fontMeta.isExactStandard && Math.abs(fitScaleX - 1) < 0.06
+            });
+          }
+
+          if (!needsBarReflow) {
+            patches.push(...tokenPatches);
+          } else {
+            // Bar-Local Smart Reflow: ONLY reflow this bar (from its first chord to end of bar),
+            // preserving any non-chord prefix (e.g. "Intro:" or "(接副歌 ") AND keeping every │ barline untouched!
+            const firstChordIdx = segMatches[0].index;
+            let lastNonSpaceIdx = seg.end;
+            while (lastNonSpaceIdx > firstChordIdx && !text[lastNonSpaceIdx - 1].trim()) lastNonSpaceIdx--;
+            const segBounds = getCharRangeBounds(line, firstChordIdx, lastNonSpaceIdx);
+            const rawBarSlice = text.slice(firstChordIdx, lastNonSpaceIdx);
+            const newBarText = transposeSingleLine("│" + rawBarSlice, srcKey, dstKey, accPref, mode, capoInfo).slice(1);
+
+            const chordStartBounds = getCharRangeBounds(line, segMatches[0].index, segMatches[0].index + segMatches[0][0].length);
+            const segStyle = sampleTokenVisualStyleFromCanvas(
+              pageModel.baseCtx, pageModel.baseScale,
+              chordStartBounds.x0, chordStartBounds.x1, chordStartBounds.topY, chordStartBounds.botY,
+              pageModel.pageBgRgb, chordStartBounds.fontMeta, segMatches[0][0], chordStartBounds.fontSize
+            );
+            const vMask = computeSafeMaskVertical(rawBarSlice, segBounds.baselineY, segBounds.topY, segBounds.botY, segBounds.fontSize, line);
+            mCtx.font = buildCanvasFontSpec(chordStartBounds.fontMeta, segBounds.fontSize, segStyle.weight);
+            const natW = mCtx.measureText(newBarText).width * segStyle.metricScaleX;
+
+            const safeLeftX = Math.max(leftBarRightX + 0.8, segBounds.x0);
+            const maxBarW = Math.max(segBounds.x1 - safeLeftX, rightBarLeftX - safeLeftX - 1.5);
+            const fitScaleX = natW > maxBarW ? (maxBarW / natW) * segStyle.metricScaleX : segStyle.metricScaleX;
+            const maskL = Math.max(leftBarRightX + 0.4, segBounds.x0 - 0.6);
+            const maskR = Math.min(rightBarLeftX - 0.4, segBounds.x1 + 0.8);
+
+            patches.push({
+              kind: "chord-line",
+              origText: rawBarSlice,
+              newText: newBarText,
+              maskX0: maskL,
+              maskX1: Math.max(maskL + 1, maskR),
+              maskTopY: vMask.maskTopY,
+              maskBotY: vMask.maskBotY,
+              eraseBgHex: segStyle.bgHex,
+              eraseBgRgb: segStyle.bgRgb,
+              pillFillHex: null,
+              pillFillRgb: null,
+              drawX: safeLeftX,
+              drawW: mCtx.measureText(newBarText).width * fitScaleX,
+              baselineY: segBounds.baselineY,
+              fontSize: segBounds.fontSize,
+              fontMeta: chordStartBounds.fontMeta,
+              weight: segStyle.weight,
+              fgHex: segStyle.fgHex,
+              fgRgb: segStyle.fgRgb,
+              scaleX: fitScaleX,
+              canUseNativeVectorPdf: false
+            });
+          }
+        }
+      }
+
+      return patches;
+    }
+
+    function drawPatchOnto2dContext(ctx, patch, scale, highlightOnScreen = false) {
+      // 1. Erase original glyph area using exact learned background color
+      ctx.save();
+      ctx.fillStyle = patch.eraseBgHex || "#ffffff";
+      ctx.fillRect(
+        patch.maskX0 * scale,
+        patch.maskTopY * scale,
+        Math.max(1, (patch.maskX1 - patch.maskX0) * scale),
+        Math.max(1, (patch.maskBotY - patch.maskTopY) * scale)
+      );
+
+      // 2. If this was a shaded metadata pill (e.g. #cccccc), redraw the clean resized pill
+      if (patch.pillFillHex) {
+        ctx.fillStyle = patch.pillFillHex;
+        ctx.fillRect(
+          patch.pillX0 * scale,
+          patch.maskTopY * scale,
+          Math.max(1, (patch.pillX1 - patch.pillX0) * scale),
+          Math.max(1, (patch.maskBotY - patch.maskTopY) * scale)
+        );
+      }
+
+      // 3. Optional subtle screen-only highlight so user can verify transposed chord locations
+      if (highlightOnScreen) {
+        ctx.fillStyle = "rgba(245, 158, 11, 0.16)";
+        const hX0 = Math.min(patch.maskX0, patch.drawX) * scale;
+        const hX1 = Math.max(patch.maskX1, patch.drawX + patch.drawW) * scale;
+        ctx.fillRect(
+          hX0,
+          patch.maskTopY * scale,
+          Math.max(1, hX1 - hX0),
+          Math.max(1, (patch.maskBotY - patch.maskTopY) * scale)
+        );
+      }
+
+      // 4. Render replacement chord/metadata in exact learned font, size, weight, color & metric scale
+      ctx.font = buildCanvasFontSpec(patch.fontMeta, patch.fontSize * scale, patch.weight);
+      ctx.fillStyle = highlightOnScreen ? "#9A3412" : (patch.fgHex || "#000000");
+      ctx.textBaseline = "alphabetic";
+      ctx.textAlign = "left";
+      ctx.translate(patch.drawX * scale, patch.baselineY * scale);
+      if (Math.abs((patch.scaleX || 1) - 1) > 0.005) {
+        ctx.scale(patch.scaleX, 1);
+      }
+      ctx.fillText(patch.newText, 0, 0);
+      ctx.restore();
+    }
+
+    function renderTransposedPdfPageCanvas(pageModel, patches, targetCanvas, highlightOnScreen = false) {
+      targetCanvas.width = pageModel.baseCanvas.width;
+      targetCanvas.height = pageModel.baseCanvas.height;
+      const ctx = targetCanvas.getContext("2d");
+      ctx.drawImage(pageModel.baseCanvas, 0, 0);
+      for (const patch of patches) {
+        drawPatchOnto2dContext(ctx, patch, pageModel.baseScale, highlightOnScreen);
+      }
+    }
+
+    function renderPdfStyleBar(pdfModel, totalPatchCount) {
+      const bar = document.getElementById("pdfStyleBar");
+      const metaEl = document.getElementById("pdfStyleMeta");
+      const tintBtn = document.getElementById("btnTogglePdfTint");
+      if (!bar || !metaEl) return;
+
+      const sp = pdfModel.styleProfile;
+      bar.classList.add("visible");
+      const chips = [];
+      chips.push(`<span class="pdf-style-chip">🧠 已自動學習 PDF 排版</span>`);
+      chips.push(`<span class="pdf-style-chip">📄 ${sp.pageCount} 頁 · ${sp.paperName} · ${sp.hasTwoColumn ? "雙欄排版" : "單欄排版"}</span>`);
+      if (sp.topFonts.length > 0) {
+        chips.push(`<span class="pdf-style-chip">🔤 字體：${sp.topFonts.join(" / ")}</span>`);
+      }
+      if (sp.avgChordPt || sp.avgLyricPt) {
+        const sizeParts = [];
+        if (sp.avgChordPt) sizeParts.push(`和弦約 ${sp.avgChordPt}pt`);
+        if (sp.avgLyricPt) sizeParts.push(`歌詞約 ${sp.avgLyricPt}pt`);
+        chips.push(`<span class="pdf-style-chip">📐 ${sizeParts.join(" · ")}</span>`);
+      }
+      if (sp.chordColors.length > 0 || sp.shadingColors.length > 0) {
+        const swatches = [];
+        for (const c of sp.chordColors.slice(0, 2)) {
+          swatches.push(`<span class="pdf-color-swatch" style="background:${c}" title="學習到和弦墨色 ${c}"></span>`);
+        }
+        for (const s of sp.shadingColors.slice(0, 2)) {
+          swatches.push(`<span class="pdf-color-swatch" style="background:${s}" title="學習到色塊底色 ${s}"></span>`);
+        }
+        chips.push(`<span class="pdf-style-chip">🎨 墨色/底色 ${swatches.join(" ")}</span>`);
+      }
+      chips.push(`<span class="pdf-style-chip">🎵 偵測 ${sp.chordTokenCount} 個和弦${totalPatchCount > 0 ? `（已轉調 ${totalPatchCount} 處）` : ""}</span>`);
+
+      metaEl.innerHTML = chips.join("");
+      if (tintBtn) {
+        tintBtn.classList.toggle("active", Boolean(state.pdfHighlightChords));
+        tintBtn.textContent = state.pdfHighlightChords ? "🔦 已開啟轉調處標示（列印維持原色）" : "🔦 預覽標示轉調處";
+      }
+    }
+
+    function renderPdfModelPreview(pdfModel) {
+      clearDocxPaperInlineStyles();
+      elSheetPaper.classList.add("pdf-mode");
+      elSheetPaper.innerHTML = "";
+
+      const stack = document.createElement("div");
+      stack.className = "pdf-pages-stack";
+
+      if (pdfModel.styleProfile.isScannedPdf) {
+        const warn = document.createElement("div");
+        warn.className = "pdf-scanned-banner";
+        warn.innerHTML = `<strong>⚠️ 偵測到此 PDF 為「掃描影像檔（無可選取文字層）」</strong><br/>目前瀏覽器可直接預覽原頁，但無法直接辨識影像內嵌的和弦文字進行自動轉調。建議使用 Word / Google Docs / 樂譜軟體匯出的「文字型 PDF」或「.docx」原檔，即可 1:1 復刻排版無損轉調！`;
+        stack.appendChild(warn);
+      }
+
+      let totalPatches = 0;
+      for (const pageModel of pdfModel.pages) {
+        const patches = computePdfPagePatches(
+          pageModel,
+          state.srcKey,
+          state.dstKey,
+          state.accPref,
+          state.mode,
+          state.capoOverride
+        );
+        totalPatches += patches.length;
+
+        const card = document.createElement("div");
+        card.className = "pdf-page-card";
+        card.style.aspectRatio = `${pageModel.widthPt.toFixed(2)} / ${pageModel.heightPt.toFixed(2)}`;
+
+        const canvas = document.createElement("canvas");
+        canvas.className = "pdf-page-canvas";
+        renderTransposedPdfPageCanvas(pageModel, patches, canvas, state.pdfHighlightChords);
+        card.appendChild(canvas);
+
+        if (pdfModel.numPages > 1) {
+          const badge = document.createElement("div");
+          badge.className = "pdf-page-badge";
+          badge.textContent = `第 ${pageModel.pageNum} / ${pdfModel.numPages} 頁`;
+          card.appendChild(badge);
+        }
+
+        stack.appendChild(card);
+      }
+
+      elSheetPaper.appendChild(stack);
+      renderPdfStyleBar(pdfModel, totalPatches);
+    }
+
+    // =========================================================================
+    // 3F. Direct Vector-Preserving PDF Export & Style-Learned .docx Export
+    // =========================================================================
+    async function renderPatchTo4xPngBytes(patch, drawLeftPt, drawTopPt, drawWidthPt, drawHeightPt) {
+      const dpiScale = 4.0;
+      const c = document.createElement("canvas");
+      c.width = Math.max(2, Math.ceil(drawWidthPt * dpiScale));
+      c.height = Math.max(2, Math.ceil(drawHeightPt * dpiScale));
+      const ctx = c.getContext("2d");
+
+      // Optional shading pill fill behind text
+      if (patch.pillFillHex) {
+        ctx.fillStyle = patch.pillFillHex;
+        ctx.fillRect(
+          (patch.pillX0 - drawLeftPt) * dpiScale,
+          (patch.maskTopY - drawTopPt) * dpiScale,
+          Math.max(1, (patch.pillX1 - patch.pillX0) * dpiScale),
+          Math.max(1, (patch.maskBotY - patch.maskTopY) * dpiScale)
+        );
+      }
+
+      ctx.font = buildCanvasFontSpec(patch.fontMeta, patch.fontSize * dpiScale, patch.weight);
+      ctx.fillStyle = patch.fgHex || "#000000";
+      ctx.textBaseline = "alphabetic";
+      ctx.textAlign = "left";
+      ctx.save();
+      ctx.translate((patch.drawX - drawLeftPt) * dpiScale, (patch.baselineY - drawTopPt) * dpiScale);
+      if (Math.abs((patch.scaleX || 1) - 1) > 0.005) {
+        ctx.scale(patch.scaleX, 1);
+      }
+      ctx.fillText(patch.newText, 0, 0);
+      ctx.restore();
+
+      const blob = await new Promise(resolve => c.toBlob(resolve, "image/png"));
+      return new Uint8Array(await blob.arrayBuffer());
+    }
+
+    async function exportTransposedPdfBytes(pdfModel, origPdfBytes, targetKey = null, targetMode = null, capoArg = null) {
+      const PDFLib = await ensurePdfLibLoaded();
+      const tKey = targetKey || state.dstKey;
+      const tMode = targetMode || state.mode;
+      const allPagePatches = pdfModel.pages.map(pg =>
+        computePdfPagePatches(pg, state.srcKey, tKey, state.accPref, tMode, capoArg)
+      );
+
+      // Try lossless vector-preserving in-place PDF patching first (keeps 100% original vector lyrics/graphics!)
+      const hasAnyRotatedPage = pdfModel.pages.some(pg => (pg.rotation % 360) !== 0);
+      if (origPdfBytes && !hasAnyRotatedPage) {
+        try {
+          const pdfDoc = await PDFLib.PDFDocument.load(origPdfBytes, { ignoreEncryption: true });
+          const pdfPages = pdfDoc.getPages();
+          if (pdfPages.length === pdfModel.pages.length) {
+            const stdFonts = {};
+            const getStdFont = async (fontMeta, weight) => {
+              const isBold = (weight || 400) >= 600;
+              const isItalic = Boolean(fontMeta.italic);
+              let sfKey;
+              if (fontMeta.standardPdfFont === "times") {
+                sfKey = isBold && isItalic ? "TimesRomanBoldItalic" : isBold ? "TimesRomanBold" : isItalic ? "TimesRomanItalic" : "TimesRoman";
+              } else if (fontMeta.standardPdfFont === "courier") {
+                sfKey = isBold && isItalic ? "CourierBoldOblique" : isBold ? "CourierBold" : isItalic ? "CourierOblique" : "Courier";
+              } else {
+                sfKey = isBold && isItalic ? "HelveticaBoldOblique" : isBold ? "HelveticaBold" : isItalic ? "HelveticaOblique" : "Helvetica";
+              }
+              if (!stdFonts[sfKey]) {
+                stdFonts[sfKey] = await pdfDoc.embedFont(PDFLib.StandardFonts[sfKey]);
+              }
+              return stdFonts[sfKey];
+            };
+
+            for (let pi = 0; pi < pdfModel.pages.length; pi++) {
+              const pageModel = pdfModel.pages[pi];
+              const pdfPage = pdfPages[pi];
+              const patches = allPagePatches[pi];
+              if (!patches || patches.length === 0) continue;
+
+              for (const patch of patches) {
+                const bg = patch.eraseBgRgb || { r: 255, g: 255, b: 255 };
+                const [mx0, myTop] = pageModel.viewport1x.convertToPdfPoint(patch.maskX0, patch.maskTopY);
+                const [mx1, myBot] = pageModel.viewport1x.convertToPdfPoint(patch.maskX1, patch.maskBotY);
+                const rectX = Math.min(mx0, mx1);
+                const rectY = Math.min(myTop, myBot);
+                const rectW = Math.max(0.5, Math.abs(mx1 - mx0));
+                const rectH = Math.max(0.5, Math.abs(myTop - myBot));
+
+                pdfPage.drawRectangle({
+                  x: rectX,
+                  y: rectY,
+                  width: rectW,
+                  height: rectH,
+                  color: PDFLib.rgb(bg.r / 255, bg.g / 255, bg.b / 255),
+                  borderWidth: 0
+                });
+
+                if (patch.canUseNativeVectorPdf && !patch.pillFillHex) {
+                  const font = await getStdFont(patch.fontMeta, patch.weight);
+                  const fg = patch.fgRgb || { r: 0, g: 0, b: 0 };
+                  const [tx, ty] = pageModel.viewport1x.convertToPdfPoint(patch.drawX, patch.baselineY);
+                  pdfPage.drawText(patch.newText, {
+                    x: tx,
+                    y: ty,
+                    size: patch.fontSize,
+                    font,
+                    color: PDFLib.rgb(fg.r / 255, fg.g / 255, fg.b / 255)
+                  });
+                } else {
+                  // High-DPI 4x transparent PNG patch preserves exact learned local font (e.g. Microsoft JhengHei, PingFang, Roboto) & CJK chars
+                  const dLeft = Math.min(patch.drawX - 1, patch.pillFillHex ? patch.pillX0 : patch.drawX - 1);
+                  const dRight = Math.max(patch.drawX + patch.drawW + 2, patch.pillFillHex ? patch.pillX1 : patch.drawX + patch.drawW + 2);
+                  const dTop = Math.min(patch.maskTopY, patch.baselineY - patch.fontSize * 1.05);
+                  const dBot = Math.max(patch.maskBotY, patch.baselineY + patch.fontSize * 0.35);
+                  const dW = Math.max(2, dRight - dLeft);
+                  const dH = Math.max(2, dBot - dTop);
+
+                  const pngBytes = await renderPatchTo4xPngBytes(patch, dLeft, dTop, dW, dH);
+                  const pngImg = await pdfDoc.embedPng(pngBytes);
+                  const [px0, pyTop] = pageModel.viewport1x.convertToPdfPoint(dLeft, dTop);
+                  const [px1, pyBot] = pageModel.viewport1x.convertToPdfPoint(dRight, dBot);
+                  pdfPage.drawImage(pngImg, {
+                    x: Math.min(px0, px1),
+                    y: Math.min(pyTop, pyBot),
+                    width: Math.abs(px1 - px0),
+                    height: Math.abs(pyTop - pyBot)
+                  });
+                }
+              }
+            }
+            return await pdfDoc.save();
+          }
+        } catch (vecErr) {
+          console.warn("Vector PDF in-place patch fallback to high-DPI page export:", vecErr);
+        }
+      }
+
+      // Bulletproof Fallback: Build clean exact-size PDF from crisp rendered transposed canvases
+      const outDoc = await PDFLib.PDFDocument.create();
+      for (let pi = 0; pi < pdfModel.pages.length; pi++) {
+        const pageModel = pdfModel.pages[pi];
+        const patches = allPagePatches[pi];
+        const tempCanvas = document.createElement("canvas");
+        renderTransposedPdfPageCanvas(pageModel, patches, tempCanvas, false);
+        const pngBlob = await new Promise(resolve => tempCanvas.toBlob(resolve, "image/png"));
+        const pngBytes = new Uint8Array(await pngBlob.arrayBuffer());
+        const embedded = await outDoc.embedPng(pngBytes);
+        const outPage = outDoc.addPage([pageModel.widthPt, pageModel.heightPt]);
+        outPage.drawImage(embedded, {
+          x: 0,
+          y: 0,
+          width: pageModel.widthPt,
+          height: pageModel.heightPt
+        });
+      }
+      return await outDoc.save();
+    }
+
+    function buildLearnedDocxXmlFromPdfModel(templateXmlStr, pdfModel, targetKey, targetMode, capoArg) {
+      const bodyStart = templateXmlStr.indexOf("<w:body>");
+      const headerPart = templateXmlStr.slice(0, bodyStart + 8);
+      const firstPage = pdfModel.pages[0];
+      const pgW = Math.round(firstPage.widthPt * 20);
+      const pgH = Math.round(firstPage.heightPt * 20);
+      const orientAttr = pgW > pgH ? ` w:orient="landscape"` : "";
+
+      // Learn realistic page margins from line bounding boxes across all pages
+      const leftVals = [], rightVals = [], topVals = [];
+      for (const pg of pdfModel.pages) {
+        for (const ln of pg.visualLines) {
+          if (ln.colIdx === 0 || ln.colIdx === 1) leftVals.push(ln.x0);
+          if (ln.colIdx === 0 || ln.colIdx === 2) rightVals.push(pg.widthPt - ln.x1);
+          topVals.push(ln.topY);
+        }
+      }
+      leftVals.sort((a, b) => a - b);
+      rightVals.sort((a, b) => a - b);
+      topVals.sort((a, b) => a - b);
+      const marLeftPt = Math.max(28, Math.min(90, leftVals[Math.floor(leftVals.length * 0.05)] || 54));
+      const marRightPt = Math.max(28, Math.min(90, rightVals[Math.floor(rightVals.length * 0.05)] || 54));
+      const marTopPt = Math.max(28, Math.min(90, topVals[0] || 48));
+      const marBotPt = 48;
+
+      const buildLearnedParaXml = (line, opts = {}) => {
+        const transposed = transposeSingleLine(line.text, state.srcKey, targetKey, state.accPref, targetMode, capoArg);
+        const st = line.visualStyle || { fgHex: "#000000", bgHex: "#ffffff", hasShading: false, weight: 400 };
+        const fontName = escapeXml(line.primaryFont.wordFont || "Microsoft JhengHei");
+        const szVal = Math.max(14, Math.min(96, Math.round(line.fontSize * 2)));
+        const isBold = (st.weight || 400) >= 600;
+        const isItalic = Boolean(line.primaryFont.italic);
+        const fgClean = (st.fgHex || "#000000").replace(/^#/, "");
+        const bgClean = st.hasShading ? (st.bgHex || "").replace(/^#/, "") : "";
+
+        let pPrInner = "";
+        if (opts.pageBreakBefore) pPrInner += `<w:pageBreakBefore w:val="1"/>`;
+        const spBeforeTwips = opts.spacingBeforePt > 2 ? Math.min(720, Math.round(opts.spacingBeforePt * 20)) : 0;
+        pPrInner += `<w:spacing w:before="${spBeforeTwips}" w:after="20" w:line="264" w:lineRule="auto"/>`;
+
+        if (line.alignment === "right") {
+          pPrInner += `<w:jc w:val="right"/>`;
+        } else if (line.alignment === "center") {
+          pPrInner += `<w:jc w:val="center"/>`;
+        } else if (!opts.inTable) {
+          const indLeftPt = line.x0 - marLeftPt;
+          if (indLeftPt > 6) {
+            pPrInner += `<w:ind w:left="${Math.round(indLeftPt * 20)}"/>`;
+          }
+        }
+
+        let rPrInner = `<w:rFonts w:ascii="${fontName}" w:eastAsia="${fontName}" w:hAnsi="${fontName}"/>`;
+        if (isBold) rPrInner += `<w:b/>`;
+        if (isItalic) rPrInner += `<w:i/>`;
+        rPrInner += `<w:sz w:val="${szVal}"/><w:szCs w:val="${szVal}"/>`;
+        if (fgClean && fgClean !== "000000") rPrInner += `<w:color w:val="${fgClean}"/>`;
+        if (bgClean) rPrInner += `<w:shd w:fill="${bgClean}" w:val="clear"/>`;
+
+        return `<w:p><w:pPr>${pPrInner}<w:rPr>${rPrInner}</w:rPr></w:pPr><w:r><w:rPr>${rPrInner}</w:rPr><w:t xml:space="preserve">${escapeXml(transposed)}</w:t></w:r></w:p>`;
+      };
+
+      const bodyParts = [];
+      for (let pi = 0; pi < pdfModel.pages.length; pi++) {
+        const pg = pdfModel.pages[pi];
+        let needPageBreak = pi > 0;
+
+        if (pg.gutter) {
+          const hdrs = pg.visualLines.filter(l => l.colIdx === 0 && l.y < pg.heightPt * 0.5);
+          const lefts = pg.visualLines.filter(l => l.colIdx === 1);
+          const rights = pg.visualLines.filter(l => l.colIdx === 2);
+          const ftrs = pg.visualLines.filter(l => l.colIdx === 0 && l.y >= pg.heightPt * 0.5);
+
+          let prevY = null;
+          for (const ln of hdrs) {
+            const gap = prevY !== null ? Math.max(0, (ln.y - prevY) - ln.fontSize * 1.35) : 0;
+            bodyParts.push(buildLearnedParaXml(ln, { pageBreakBefore: needPageBreak, spacingBeforePt: gap }));
+            needPageBreak = false;
+            prevY = ln.y;
+          }
+
+          if (lefts.length > 0 || rights.length > 0) {
+            const contentTwips = Math.max(4000, pgW - Math.round((marLeftPt + marRightPt) * 20));
+            const halfW = Math.round(contentTwips / 2);
+            const buildColParas = (colLines) => {
+              if (colLines.length === 0) return `<w:p/>`;
+              let py = null;
+              return colLines.map(ln => {
+                const gap = py !== null ? Math.max(0, (ln.y - py) - ln.fontSize * 1.35) : 0;
+                py = ln.y;
+                return buildLearnedParaXml(ln, { spacingBeforePt: gap, inTable: true });
+              }).join("");
+            };
+            if (needPageBreak) {
+              bodyParts.push(`<w:p><w:r><w:br w:type="page"/></w:r></w:p>`);
+              needPageBreak = false;
+            }
+            bodyParts.push(
+              `<w:tbl><w:tblPr><w:tblW w:w="${contentTwips}" w:type="dxa"/><w:tblBorders>` +
+              `<w:top w:val="none"/><w:left w:val="none"/><w:bottom w:val="none"/><w:right w:val="none"/><w:insideH w:val="none"/><w:insideV w:val="none"/>` +
+              `</w:tblBorders></w:tblPr><w:tr>` +
+              `<w:tc><w:tcPr><w:tcW w:w="${halfW}" w:type="dxa"/></w:tcPr>${buildColParas(lefts)}</w:tc>` +
+              `<w:tc><w:tcPr><w:tcW w:w="${contentTwips - halfW}" w:type="dxa"/></w:tcPr>${buildColParas(rights)}</w:tc>` +
+              `</w:tr></w:tbl>`
+            );
+          }
+
+          prevY = null;
+          for (const ln of ftrs) {
+            const gap = prevY !== null ? Math.max(0, (ln.y - prevY) - ln.fontSize * 1.35) : 4;
+            bodyParts.push(buildLearnedParaXml(ln, { spacingBeforePt: gap }));
+            prevY = ln.y;
+          }
+        } else {
+          let prevY = null;
+          for (const ln of pg.visualLines) {
+            const gap = prevY !== null ? Math.max(0, (ln.y - prevY) - ln.fontSize * 1.35) : 0;
+            bodyParts.push(buildLearnedParaXml(ln, { pageBreakBefore: needPageBreak, spacingBeforePt: gap }));
+            needPageBreak = false;
+            prevY = ln.y;
+          }
+        }
+      }
+
+      const sectPrXml =
+        `<w:sectPr>` +
+        `<w:pgSz w:w="${pgW}" w:h="${pgH}"${orientAttr}/>` +
+        `<w:pgMar w:top="${Math.round(marTopPt * 20)}" w:right="${Math.round(marRightPt * 20)}" w:bottom="${Math.round(marBotPt * 20)}" w:left="${Math.round(marLeftPt * 20)}" w:header="720" w:footer="720" w:gutter="0"/>` +
+        `</w:sectPr></w:body></w:document>`;
+
+      return headerPart + bodyParts.join("") + sectPrXml;
+    }
+
+    // =========================================================================
     // 4. Application State & UI Rendering
     // =========================================================================
     const state = {
       fileName: "歌譜.docx",
+      sourceType: "text",       // 'text' | 'docx' | 'pdf'
       docxBytes: null,
       docxXmlString: null,
       docxModel: null,
+      pdfBytes: null,
+      pdfModel: null,
+      pdfHighlightChords: false,
       textModifiedManually: false,
       rawText: "",
       srcKey: "C",
@@ -3048,6 +5342,11 @@ G - - - | A - - -
     const elCapoList   = document.getElementById("capoList");
     const elSummaryBadge = document.getElementById("transposeSummaryBadge");
     const elDownloadKeyLabel = document.getElementById("btnDownloadKeyLabel");
+    const elDownloadDocxBtn = document.getElementById("btnDownloadDocx");
+    const elDownloadDocxPrefix = document.getElementById("btnDownloadDocxPrefix");
+    const elDownloadPdfBtn = document.getElementById("btnDownloadPdf");
+    const elDownloadPdfLabel = document.getElementById("btnDownloadPdfLabel");
+    const elPdfStyleBar = document.getElementById("pdfStyleBar");
     const elLoadedFileBanner = document.getElementById("loadedFileBanner");
     const elLoadedFileName = document.getElementById("loadedFileName");
     const elLoadedFileMode = document.getElementById("loadedFileModeBadge");
@@ -3060,10 +5359,10 @@ G - - - | A - - -
       setTimeout(() => t.classList.remove("show"), 2400);
     }
 
-    function getOutputFileName(customTargetKey = null, customMode = null) {
+    function getOutputFileName(customTargetKey = null, customMode = null, ext = "docx") {
       const tKey = customTargetKey || state.dstKey;
       const tMode = customMode || state.mode;
-      const base = state.fileName.replace(/\.(docx|txt|md)$/i, "").trim();
+      const base = state.fileName.replace(/\.(docx|doc|pdf|txt|md)$/i, "").trim();
       let suffix = tKey;
       if (tMode === "number") suffix = `${tKey}_級數譜`;
       else if (state.capoOverride && state.capoOverride.capo > 0 && !customTargetKey) {
@@ -3079,7 +5378,7 @@ G - - - | A - - -
       } else {
         finalBase = `${base} ${suffix}`;
       }
-      return `${finalBase}.docx`;
+      return `${finalBase}.${ext}`;
     }
 
     function renderKeyGrids() {
@@ -3481,12 +5780,39 @@ G - - - | A - - -
     }
 
     function clearDocxPaperInlineStyles() {
-      elSheetPaper.classList.remove("docx-mode");
+      elSheetPaper.classList.remove("docx-mode", "pdf-mode");
       elSheetPaper.style.width = "";
       elSheetPaper.style.paddingTop = "";
       elSheetPaper.style.paddingRight = "";
       elSheetPaper.style.paddingBottom = "";
       elSheetPaper.style.paddingLeft = "";
+      if (elPdfStyleBar) elPdfStyleBar.classList.remove("visible");
+    }
+
+    function updateExportToolbarForMode() {
+      const isPdfActive = Boolean(!state.textModifiedManually && state.pdfModel);
+      const hasContent = Boolean(state.rawText.trim() || (!state.textModifiedManually && (state.docxModel || state.pdfModel)));
+      const pdfLabelEl = document.getElementById("btnDownloadPdfLabel");
+      const docxLabelEl = document.getElementById("btnDownloadKeyLabel");
+
+      if (elDownloadPdfBtn) {
+        elDownloadPdfBtn.style.display = isPdfActive ? "inline-flex" : "none";
+      }
+      if (pdfLabelEl) {
+        pdfLabelEl.textContent = isPdfActive ? getOutputFileName(null, null, "pdf") : "歌譜.pdf";
+      }
+      if (elDownloadDocxBtn && elDownloadDocxPrefix) {
+        if (isPdfActive) {
+          elDownloadDocxBtn.classList.remove("btn-primary");
+          elDownloadDocxPrefix.textContent = "⬇ 學習排版匯出 .docx";
+        } else {
+          elDownloadDocxBtn.classList.add("btn-primary");
+          elDownloadDocxPrefix.textContent = "⬇ 下載原排版 .docx";
+        }
+      }
+      if (docxLabelEl) {
+        docxLabelEl.textContent = hasContent ? getOutputFileName(null, null, "docx") : "歌譜.docx";
+      }
     }
 
     function renderSheetPreview() {
@@ -3497,28 +5823,37 @@ G - - - | A - - -
       if (diff < -6) diff += 12;
       const diffLabel = diff === 0 ? "原調 0 半音" : (diff > 0 ? `+${diff} 半音` : `${diff} 半音`);
       elSummaryBadge.textContent = `${state.srcKey} → ${state.dstKey} (${diffLabel})`;
-      elDownloadKeyLabel.textContent = state.rawText.trim() ? getOutputFileName() : "歌譜.docx";
+      updateExportToolbarForMode();
 
       if (elBtnRestoreDocxMode) {
-        elBtnRestoreDocxMode.style.display = (state.docxModel && state.textModifiedManually) ? "inline-flex" : "none";
+        elBtnRestoreDocxMode.style.display = ((state.docxModel || state.pdfModel) && state.textModifiedManually) ? "inline-flex" : "none";
       }
 
-      if (!state.rawText.trim() && !(state.docxModel && !state.textModifiedManually)) {
+      if (!state.rawText.trim() && !(state.docxModel && !state.textModifiedManually) && !(state.pdfModel && !state.textModifiedManually)) {
         clearDocxPaperInlineStyles();
         elSheetPaper.innerHTML = `
           <div class="empty-sheet-state">
             <div style="font-size: 36px; margin-bottom: 12px;">🎼</div>
             <h3>尚未載入歌譜檔案</h3>
             <p>
-              請從左側拖曳上傳 <strong>.docx / .txt</strong> 歌譜，或貼上 <strong>Google Docs 連結</strong>（支援先開複本直接轉調，100% 保留原始縮排與排版），也可以直接在左側文字框貼上歌詞與和弦。
+              請從左側拖曳上傳 <strong>.docx / .pdf / .txt</strong> 歌譜，或貼上 <strong>Google Docs 連結</strong>。<br/>
+              Word 歌譜支援原 XML 無損轉調；PDF 歌譜會自動學習字體、顏色、灰底色塊與單雙欄排版，<strong>1:1 視覺復刻並原地轉調</strong>！
             </p>
           </div>
         `;
         return;
       }
 
+      // Faithful 1:1 PDF Visual Replica Preview Mode
+      if (!state.textModifiedManually && state.pdfModel) {
+        renderPdfModelPreview(state.pdfModel);
+        return;
+      }
+
       // Faithful Lossless .docx Preview Mode (1:1 Fonts, Sizes, Negative/Float Indents, Shading, Headers & Tabs)
       if (!state.textModifiedManually && state.docxModel) {
+        if (elPdfStyleBar) elPdfStyleBar.classList.remove("visible");
+        elSheetPaper.classList.remove("pdf-mode");
         renderDocxModelPreview(state.docxModel);
         return;
       }
@@ -3579,9 +5914,13 @@ G - - - | A - - -
     // =========================================================================
     async function initCleanWorkspace() {
       state.fileName = "歌譜.docx";
+      state.sourceType = "text";
       state.docxBytes = null;
       state.docxXmlString = null;
       state.docxModel = null;
+      state.pdfBytes = null;
+      state.pdfModel = null;
+      state.pdfHighlightChords = false;
       state.rawText = "";
       state.textModifiedManually = false;
       state.srcKey = "C";
@@ -3594,9 +5933,45 @@ G - - - | A - - -
 
     async function handleFileLoaded(file) {
       try {
+        const lowerName = (file.name || "").toLowerCase();
         state.fileName = file.name;
-        if (file.name.toLowerCase().endsWith(".docx")) {
+
+        if (lowerName.endsWith(".doc") && !lowerName.endsWith(".docx")) {
+          alert("偵測到舊版 Word (.doc) 二進位格式。請先在 Word 或 Google Docs 中「另存新檔為 .docx」或「匯出為 .pdf」，再拖曳上傳，即可完整保留原排版無損轉調！");
+          return;
+        }
+
+        if (lowerName.endsWith(".pdf")) {
+          clearDocxPaperInlineStyles();
+          elSheetPaper.innerHTML = `
+            <div class="pdf-status-card">
+              <div style="font-size: 32px; margin-bottom: 10px;">⏳</div>
+              <div style="font-weight: 700; font-size: 15px; color: var(--text-main); margin-bottom: 6px;">正在解析 PDF 並自動學習字體、顏色與排版...</div>
+              <div id="pdfLoadProgress" style="font-size: 12.5px; color: var(--text-muted);">載入 PDF 解析引擎中（100% 瀏覽器本地處理）</div>
+            </div>
+          `;
           const buf = await file.arrayBuffer();
+          const pdfBytes = new Uint8Array(buf);
+          const pdfModel = await parsePdfDocument(pdfBytes, (cur, total) => {
+            const pEl = document.getElementById("pdfLoadProgress");
+            if (pEl) pEl.textContent = `正在分析並學習第 ${cur} / ${total} 頁版面與字體特徵...`;
+          });
+          state.sourceType = "pdf";
+          state.pdfBytes = pdfBytes;
+          state.pdfModel = pdfModel;
+          state.docxBytes = null;
+          state.docxXmlString = DEFAULT_MINIMAL_DOCUMENT_XML;
+          state.docxModel = null;
+          state.rawText = pdfModel.plainText;
+          state.textModifiedManually = false;
+          elLoadedFileMode.textContent = pdfModel.styleProfile.isScannedPdf
+            ? "PDF 影像預覽模式 (無文字層)"
+            : "PDF 1:1 視覺復刻轉調模式";
+        } else if (lowerName.endsWith(".docx")) {
+          const buf = await file.arrayBuffer();
+          state.sourceType = "docx";
+          state.pdfBytes = null;
+          state.pdfModel = null;
           state.docxBytes = new Uint8Array(buf);
           state.docxModel = await parseDocxPackage(state.docxBytes);
           state.docxXmlString = state.docxModel.partXmlMap["word/document.xml"];
@@ -3605,17 +5980,21 @@ G - - - | A - - -
           elLoadedFileMode.textContent = "無損 .docx 原排版模式";
         } else {
           const text = await file.text();
-          state.docxBytes = base64ToUint8Array(SAMPLE_DOCX_BASE64);
-          state.docxXmlString = await extractDocumentXmlFromDocx(state.docxBytes);
+          state.sourceType = "text";
+          state.pdfBytes = null;
+          state.pdfModel = null;
+          state.docxBytes = null;
+          state.docxXmlString = DEFAULT_MINIMAL_DOCUMENT_XML;
           state.docxModel = null;
           state.rawText = text;
           state.textModifiedManually = true;
           elLoadedFileMode.textContent = "智慧 .docx 排版生成模式";
         }
+
         elRawEditor.value = state.rawText;
         const detectLines = state.docxModel
           ? [...state.docxModel.headerLines, ...state.docxModel.bodyLines]
-          : state.rawText.split(/\r?\n/);
+          : (state.pdfModel ? state.pdfModel.plainLines : state.rawText.split(/\r?\n/));
         const detected = detectSourceKey(detectLines, file.name.replace(/\.[^.]+$/, ""));
         state.srcKey = detected;
         state.dstKey = detected;
@@ -3625,12 +6004,48 @@ G - - - | A - - -
         renderAll();
         showToast(`已成功載入 ${file.name} (原調 ${detected})`);
       } catch (err) {
+        console.error(err);
         alert("載入檔案時發生錯誤：" + err.message);
+        renderAll();
+      }
+    }
+
+    async function triggerPdfDownload(targetKey = null, targetMode = null) {
+      if (!state.pdfModel) {
+        alert("請先載入 .pdf 歌譜檔案！");
+        return;
+      }
+      const btn = elDownloadPdfBtn;
+      const prefixEl = document.getElementById("btnDownloadPdfPrefix");
+      try {
+        if (btn) btn.disabled = true;
+        if (prefixEl) prefixEl.textContent = "⏳ 正在封裝 1:1 復刻排版 .pdf...";
+        const tKey = targetKey || state.dstKey;
+        const tMode = targetMode || state.mode;
+        const capoArg = targetKey ? null : state.capoOverride;
+        const outPdfBytes = await exportTransposedPdfBytes(state.pdfModel, state.pdfBytes, tKey, tMode, capoArg);
+        const blob = new Blob([outPdfBytes], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = getOutputFileName(tKey, tMode, "pdf");
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2500);
+        showToast(`已下載復刻排版 ${getOutputFileName(tKey, tMode, "pdf")}`);
+      } catch (err) {
+        console.error(err);
+        alert("匯出 PDF 時發生錯誤：" + err.message);
+      } finally {
+        if (btn) btn.disabled = false;
+        if (prefixEl) prefixEl.textContent = "⬇ 下載復刻排版 .pdf";
+        updateExportToolbarForMode();
       }
     }
 
     async function triggerDocxDownload(targetKey = null, targetMode = null) {
-      if (!state.rawText.trim()) {
+      if (!state.rawText.trim() && !state.pdfModel && !state.docxModel) {
         alert("請先上傳歌譜檔案或貼上歌譜文字！");
         return;
       }
@@ -3661,13 +6076,20 @@ G - - - | A - - -
           updatedMap["word/styles.xml"] = optimizeDocxStylesXml(state.docxModel.stylesXmlStr);
         }
         outDocxBytes = await buildDocxWithUpdatedXmlMap(state.docxBytes, updatedMap);
+      } else if (!state.textModifiedManually && state.pdfModel) {
+        let finalXml = buildLearnedDocxXmlFromPdfModel(DEFAULT_MINIMAL_DOCUMENT_XML, state.pdfModel, tKey, tMode, capoArg);
+        if (state.fixPagination) finalXml = optimizeDocxDocumentPaginationXml(finalXml);
+        outDocxBytes = await createFreshDocxBytes(finalXml, DEFAULT_MINIMAL_STYLES_XML);
       } else {
-        const templateXml = state.docxXmlString || await extractDocumentXmlFromDocx(base64ToUint8Array(SAMPLE_DOCX_BASE64));
+        const templateXml = state.docxXmlString || DEFAULT_MINIMAL_DOCUMENT_XML;
         const lines = getTransposedLines(tKey, tMode);
         let finalXml = buildDocxXmlFromTextLines(templateXml, lines);
         if (state.fixPagination) finalXml = optimizeDocxDocumentPaginationXml(finalXml);
-        const baseBytes = state.docxBytes || base64ToUint8Array(SAMPLE_DOCX_BASE64);
-        outDocxBytes = await buildDocxWithUpdatedXml(baseBytes, finalXml);
+        if (state.docxBytes) {
+          outDocxBytes = await buildDocxWithUpdatedXml(state.docxBytes, finalXml);
+        } else {
+          outDocxBytes = await createFreshDocxBytes(finalXml, DEFAULT_MINIMAL_STYLES_XML);
+        }
       }
 
       const blob = new Blob([outDocxBytes], {
@@ -3676,7 +6098,7 @@ G - - - | A - - -
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = getOutputFileName(tKey, tMode);
+      a.download = getOutputFileName(tKey, tMode, "docx");
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -3685,14 +6107,34 @@ G - - - | A - - -
 
     if (elBtnRestoreDocxMode) {
       elBtnRestoreDocxMode.addEventListener("click", () => {
-        if (!state.docxModel) return;
+        if (!state.docxModel && !state.pdfModel) return;
         state.textModifiedManually = false;
-        state.rawText = state.docxModel.plainText;
+        if (state.pdfModel) {
+          state.rawText = state.pdfModel.plainText;
+          elLoadedFileMode.textContent = "PDF 1:1 視覺復刻轉調模式";
+          showToast("已還原 PDF 1:1 視覺復刻預覽！");
+        } else if (state.docxModel) {
+          state.rawText = state.docxModel.plainText;
+          elLoadedFileMode.textContent = "無損 .docx 原排版模式";
+          showToast("已還原 .docx 原排版無損預覽！");
+        }
         elRawEditor.value = state.rawText;
         elLoadedFileName.textContent = `📄 目前載入：${state.fileName} (偵測原調: ${state.srcKey})`;
-        elLoadedFileMode.textContent = "無損 .docx 原排版模式";
         renderAll();
-        showToast("已還原 .docx 原排版無損預覽！");
+      });
+    }
+
+    const btnTogglePdfTint = document.getElementById("btnTogglePdfTint");
+    if (btnTogglePdfTint) {
+      btnTogglePdfTint.addEventListener("click", () => {
+        state.pdfHighlightChords = !state.pdfHighlightChords;
+        renderSheetPreview();
+      });
+    }
+
+    if (elDownloadPdfBtn) {
+      elDownloadPdfBtn.addEventListener("click", async () => {
+        await triggerPdfDownload();
       });
     }
 
@@ -3805,12 +6247,14 @@ G - - - | A - - -
     // Download .docx
     document.getElementById("btnDownloadDocx").addEventListener("click", async () => {
       await triggerDocxDownload();
-      if (state.rawText.trim()) showToast(`已下載 ${getOutputFileName()}`);
+      if (state.rawText.trim() || state.pdfModel || state.docxModel) {
+        showToast(`已下載 ${getOutputFileName(null, null, "docx")}`);
+      }
     });
 
     // Copy text
     document.getElementById("btnCopyText").addEventListener("click", async () => {
-      if (!state.rawText.trim() && !(state.docxModel && !state.textModifiedManually)) {
+      if (!state.rawText.trim() && !(state.docxModel && !state.textModifiedManually) && !(state.pdfModel && !state.textModifiedManually)) {
         alert("請先載入或貼上歌譜內容！");
         return;
       }
@@ -3821,18 +6265,46 @@ G - - - | A - - -
       showToast("已複製轉調後歌譜文字！");
     });
 
-    // Print PDF: Clean export without tool branding traces
+    // Print PDF: Clean export without tool branding traces (and exact PDF page size when in PDF mode)
     let originalDocTitle = document.title;
+    let pdfPrintHighlightSaved = null;
+    let pdfDynamicPrintStyleEl = null;
 
     function prepareCleanPrintTitle() {
       originalDocTitle = document.title;
-      const songBase = (state.fileName || "歌譜").replace(/\.(docx|txt|md)$/i, "").trim();
+      const songBase = (state.fileName || "歌譜").replace(/\.(docx|doc|pdf|txt|md)$/i, "").trim();
       // 匯出 PDF 時檔名預設為乾淨歌名（避免預設為網頁推廣標題）
       document.title = `${songBase} (${state.dstKey}調)`;
+
+      if (!state.textModifiedManually && state.pdfModel) {
+        if (state.pdfHighlightChords) {
+          pdfPrintHighlightSaved = true;
+          state.pdfHighlightChords = false;
+          renderPdfModelPreview(state.pdfModel);
+        }
+        const firstPg = state.pdfModel.pages[0];
+        if (firstPg) {
+          if (!pdfDynamicPrintStyleEl) {
+            pdfDynamicPrintStyleEl = document.createElement("style");
+            pdfDynamicPrintStyleEl.id = "pdfDynamicPrintPageStyle";
+            document.head.appendChild(pdfDynamicPrintStyleEl);
+          }
+          pdfDynamicPrintStyleEl.textContent = `@page { size: ${firstPg.widthPt.toFixed(2)}pt ${firstPg.heightPt.toFixed(2)}pt; margin: 0mm; }`;
+        }
+      }
     }
 
     function restoreDocTitle() {
       document.title = originalDocTitle;
+      if (pdfDynamicPrintStyleEl) {
+        pdfDynamicPrintStyleEl.remove();
+        pdfDynamicPrintStyleEl = null;
+      }
+      if (pdfPrintHighlightSaved && state.pdfModel && !state.textModifiedManually) {
+        pdfPrintHighlightSaved = null;
+        state.pdfHighlightChords = true;
+        renderPdfModelPreview(state.pdfModel);
+      }
     }
 
     window.addEventListener("beforeprint", prepareCleanPrintTitle);
@@ -3843,7 +6315,7 @@ G - - - | A - - -
       setTimeout(() => {
         window.print();
         setTimeout(restoreDocTitle, 1000);
-      }, 50);
+      }, 60);
     });
 
     // Share Guide Modal (guarded)
@@ -3941,11 +6413,11 @@ G - - - | A - - -
       }
 
       INLINE_BRACKET_REGEX.lastIndex = 0;
-      const bracketMatches = [...normLine.matchAll(INLINE_BRACKET_REGEX)];
+      const bracketMatches = [...normLine.matchAll(INLINE_BRACKET_REGEX)].filter(m => isValidChordToken(m[1], m[2] || "", m[3]));
       if (bracketMatches.length > 0) {
         const edits = [];
         for (const m of bracketMatches) {
-          const newTok = "[" + transposeChordParts(m[1], m[2] || "", m[3], srcSemi, dstSemi, useFlats, mode) + "]";
+          const newTok = "[" + transposeChordParts(m[1], m[2] || "", m[3], srcSemi, dstSemi, useFlats, mode, accPref) + "]";
           if (newTok !== m[0]) edits.push({ start: m.index, end: m.index + m[0].length, text: newTok });
         }
         edits.sort((a, b) => b.start - a.start || b.end - a.end);
@@ -3955,7 +6427,7 @@ G - - - | A - - -
       if (!isChordLine(line)) return [];
 
       CHORD_TOKEN_REGEX.lastIndex = 0;
-      const matches = [...normLine.matchAll(CHORD_TOKEN_REGEX)];
+      const matches = [...normLine.matchAll(CHORD_TOKEN_REGEX)].filter(m => isValidChordToken(m[1], m[2] || "", m[3]));
       if (matches.length === 0) return [];
 
       const edits = [];
@@ -3992,14 +6464,15 @@ G - - - | A - - -
           }
         } else if (debt < 0) {
           const pad = -debt;
-          const pipeIdx = gap.indexOf("｜") >= 0 ? gap.indexOf("｜") : gap.indexOf("|");
+          const pipeM = gap.match(BARLINE_CHAR_REGEX);
+          const pipeIdx = pipeM ? pipeM.index : -1;
           const insertAt = pipeIdx >= 0 ? gapStart + pipeIdx : gapEnd;
           edits.push({ start: insertAt, end: insertAt, text: " ".repeat(pad) });
           debt = 0;
         }
 
         const oldTok = m[0];
-        const newTok = transposeChordParts(m[1], m[2] || "", m[3], srcSemi, dstSemi, useFlats, mode);
+        const newTok = transposeChordParts(m[1], m[2] || "", m[3], srcSemi, dstSemi, useFlats, mode, accPref);
         if (newTok !== oldTok) {
           edits.push({ start: m.index, end: m.index + oldTok.length, text: newTok });
         }
