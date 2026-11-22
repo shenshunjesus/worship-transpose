@@ -663,6 +663,23 @@
       color: #78350F;
     }
 
+    .pdf-font-select {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border-strong);
+      background: #FCFBF9;
+      color: var(--text-main);
+      font-size: 11.5px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    .pdf-font-select:focus {
+      outline: 2px solid var(--accent-border);
+      border-color: var(--accent);
+    }
+
     .sheet-paper.pdf-mode {
       background: transparent;
       border: none;
@@ -1311,7 +1328,18 @@
       <!-- Learned PDF Layout & Style Inspection Bar (visible in PDF mode) -->
       <div class="pdf-style-bar" id="pdfStyleBar">
         <div class="pdf-style-meta" id="pdfStyleMeta"></div>
-        <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 6px; flex-shrink: 0;">
+          <select id="pdfFontOverrideSelect" class="pdf-font-select" title="若 PDF 隱藏原始字型名稱，可隨時手動切換補字字體">
+            <option value="auto">🔤 補字字體：自動學習（微軟正黑體優先）</option>
+            <option value="jhenghei">微軟正黑體 (Microsoft JhengHei)</option>
+            <option value="jhenghei-light">微軟正黑體 Light</option>
+            <option value="arial">Arial / Helvetica</option>
+            <option value="arial-unicode">Arial Unicode MS</option>
+            <option value="noto-sans">思源黑體 (Noto Sans TC)</option>
+            <option value="pmingliu">新細明體 (PMingLiU)</option>
+            <option value="dfkai">標楷體 (DFKai-SB)</option>
+            <option value="times">Times New Roman</option>
+          </select>
           <button type="button" class="pdf-toggle-pill" id="btnTogglePdfTint" title="開啟後會在預覽畫面用柔和琥珀色標示被偵測並轉調的和弦位置（匯出 PDF 與列印仍維持原檔墨色）">
             🔦 預覽標示轉調處
           </button>
@@ -3533,10 +3561,95 @@ G - - - | A - - -
       return true;
     }
 
+    const PDF_FONT_OVERRIDES = {
+      "jhenghei": {
+        cssFontFamily: `"Microsoft JhengHei", "微軟正黑體", "PingFang TC", "Noto Sans TC", Arial, sans-serif`,
+        wordFont: "Microsoft JhengHei",
+        displayLabel: "微軟正黑體",
+        standardPdfFont: "helvetica",
+        isExactStandard: false,
+        overrideWeight: null
+      },
+      "jhenghei-light": {
+        cssFontFamily: `"Microsoft JhengHei Light", "Microsoft JhengHei", "微軟正黑體", "PingFang TC", "Noto Sans TC", sans-serif`,
+        wordFont: "Microsoft JhengHei Light",
+        displayLabel: "微軟正黑體 Light",
+        standardPdfFont: "helvetica",
+        isExactStandard: false,
+        overrideWeight: 300
+      },
+      "arial": {
+        cssFontFamily: `Arial, Helvetica, "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif`,
+        wordFont: "Arial",
+        displayLabel: "Arial",
+        standardPdfFont: "helvetica",
+        isExactStandard: true,
+        overrideWeight: null
+      },
+      "arial-unicode": {
+        cssFontFamily: `"Arial Unicode MS", Arial, "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif`,
+        wordFont: "Arial Unicode MS",
+        displayLabel: "Arial Unicode MS",
+        standardPdfFont: "helvetica",
+        isExactStandard: false,
+        overrideWeight: null
+      },
+      "noto-sans": {
+        cssFontFamily: `"Noto Sans TC", "Source Han Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif`,
+        wordFont: "Noto Sans TC",
+        displayLabel: "思源黑體",
+        standardPdfFont: "helvetica",
+        isExactStandard: false,
+        overrideWeight: null
+      },
+      "pmingliu": {
+        cssFontFamily: `"PMingLiU", "新細明體", "MingLiU", "Noto Serif TC", "Times New Roman", serif`,
+        wordFont: "PMingLiU",
+        displayLabel: "新細明體",
+        standardPdfFont: "times",
+        isExactStandard: false,
+        overrideWeight: null
+      },
+      "dfkai": {
+        cssFontFamily: `"DFKai-SB", "標楷體", "BiauKai", "Kaiti TC", serif`,
+        wordFont: "DFKai-SB",
+        displayLabel: "標楷體",
+        standardPdfFont: "times",
+        isExactStandard: false,
+        overrideWeight: null
+      },
+      "times": {
+        cssFontFamily: `"Times New Roman", Times, Georgia, "PMingLiU", serif`,
+        wordFont: "Times New Roman",
+        displayLabel: "Times New Roman",
+        standardPdfFont: "times",
+        isExactStandard: true,
+        overrideWeight: null
+      }
+    };
+
+    function getEffectivePdfFontMeta(fontMeta) {
+      const ovKey = (typeof state !== "undefined" && state.pdfFontOverride) || "auto";
+      if (ovKey !== "auto" && PDF_FONT_OVERRIDES[ovKey]) {
+        const ov = PDF_FONT_OVERRIDES[ovKey];
+        return {
+          ...fontMeta,
+          cssFontFamily: ov.cssFontFamily,
+          wordFont: ov.wordFont,
+          displayLabel: ov.displayLabel,
+          standardPdfFont: ov.standardPdfFont,
+          isExactStandard: ov.isExactStandard,
+          weight: ov.overrideWeight !== null ? ov.overrideWeight : fontMeta.weight
+        };
+      }
+      return fontMeta;
+    }
+
     function buildCanvasFontSpec(fontMeta, fontSizePx, overrideWeight = null) {
-      const style = fontMeta.italic ? "italic" : "normal";
-      const weight = overrideWeight !== null ? overrideWeight : (fontMeta.weight || 400);
-      return `${style} ${weight} ${fontSizePx.toFixed(2)}px ${fontMeta.cssFontFamily}`;
+      const eff = getEffectivePdfFontMeta(fontMeta);
+      const style = eff.italic ? "italic" : "normal";
+      const weight = overrideWeight !== null ? overrideWeight : (eff.weight || 400);
+      return `${style} ${weight} ${fontSizePx.toFixed(2)}px ${eff.cssFontFamily}`;
     }
 
     function resolvePdfFontMeta(page, fontName, styleObj) {
@@ -3547,24 +3660,30 @@ G - - - | A - - -
         }
       } catch (_) {}
 
-      const rawName = (fontObj && fontObj.name) || (styleObj && styleObj.fontFamily) || fontName || "sans-serif";
+      // Note: PDF.js sets styleObj.fontFamily="serif" as a dummy fallback for embedded CID/CJK fonts
+      // (including Microsoft JhengHei / MSJH!). NEVER trust styleObj.fontFamily="serif" blindly.
+      const objName = (fontObj && typeof fontObj.name === "string" && fontObj.name.trim()) ? fontObj.name.trim() : "";
+      const rawName = objName || fontName || "sans-serif";
       const cleanName = String(rawName).replace(/^[A-Z]{6}\+/, "").trim();
-      const low = cleanName.toLowerCase();
-      const isObfuscated = /^(?:g_d\d+_f\d+|f\d+|t\d+|c\d+|cidfont|unnamed|sans-serif|serif|monospace)/i.test(cleanName);
+      const isObfuscated =
+        !objName ||
+        /^(?:g_d\d+_f\d+|f\d+|t\d+|tt\d+|c\d+(?:_\d+)?|cidfont|unnamed|sans-serif|serif|monospace|font\d*)/i.test(cleanName);
 
-      const hasBoldWord = /(?:bold|heavy|black|demi|semibold|extrabold)/i.test(cleanName);
+      const hasBoldWord = /(?:bold|heavy|black|demi|semibold|extrabold|msjhbd)/i.test(cleanName);
+      const hasLightWord = /(?:(?:^|[-_,])light\b|msjhl\b|thin)/i.test(cleanName);
       const hasMediumWord = /(?:^|[-_,])medium\b/i.test(cleanName);
       const bold = hasBoldWord || Boolean(fontObj && (fontObj.bold || fontObj.black));
       const weight = /(?:black|heavy|extrabold)/i.test(cleanName)
         ? 800
-        : (bold ? 700 : (hasMediumWord ? 500 : 400));
+        : (bold ? 700 : (hasMediumWord ? 500 : (hasLightWord ? 300 : 400)));
       const italic = /(?:italic|oblique|slant)/i.test(cleanName) || Boolean(fontObj && fontObj.italic);
 
       const styleGeneric = (styleObj && styleObj.fontFamily || "").toLowerCase();
+      // Only classify as serif when cleanName ITSELF explicitly identifies a serif font!
       let generic = "sans-serif";
       if (/courier|consolas|mono|menlo|monaco|inconsolata|fira\s?code|jetbrains/i.test(cleanName) || styleGeneric.includes("monospace")) {
         generic = "monospace";
-      } else if (/times|georgia|cambria|garamond|palatino|ming|sung|song|kai|serif|baskerville|didot/i.test(cleanName) || (styleGeneric.includes("serif") && !styleGeneric.includes("sans"))) {
+      } else if (/times|georgia|cambria|garamond|palatino|pming|mingliu|ming|sung|song|dfkai|biaukai|kai|mincho|batang|baskerville|didot|serif|細明|明體|宋體|楷體/i.test(cleanName) && !/sans/i.test(cleanName)) {
         generic = "serif";
       }
 
@@ -3574,10 +3693,12 @@ G - - - | A - - -
       let standardPdfFont = generic === "serif" ? "times" : (generic === "monospace" ? "courier" : "helvetica");
       let isExactStandard = false;
 
-      if (/jhenghei|微軟正黑/i.test(cleanName)) {
-        cssFontFamily = `"Microsoft JhengHei", "微軟正黑體", "PingFang TC", "Noto Sans TC", Arial, sans-serif`;
+      if (/jhenghei|msjh|微軟正黑|正黑|b74cb36e|·L³n/i.test(cleanName)) {
+        cssFontFamily = hasLightWord
+          ? `"Microsoft JhengHei Light", "Microsoft JhengHei", "微軟正黑體", "PingFang TC", "Noto Sans TC", Arial, sans-serif`
+          : `"Microsoft JhengHei", "微軟正黑體", "PingFang TC", "Noto Sans TC", Arial, sans-serif`;
         wordFont = "Microsoft JhengHei";
-        displayLabel = "微軟正黑體";
+        displayLabel = hasLightWord ? "微軟正黑體 Light" : "微軟正黑體";
       } else if (/arial\s*unicode/i.test(cleanName)) {
         cssFontFamily = `"Arial Unicode MS", Arial, "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif`;
         wordFont = "Arial Unicode MS";
@@ -3601,10 +3722,10 @@ G - - - | A - - -
         wordFont = "Noto Serif TC";
         displayLabel = "Noto Serif TC";
         standardPdfFont = "times";
-      } else if (/pingfang|heiti|stheit/i.test(cleanName)) {
-        cssFontFamily = `"PingFang TC", "Microsoft JhengHei", "Noto Sans TC", sans-serif`;
-        wordFont = "PingFang TC";
-        displayLabel = "PingFang TC";
+      } else if (/pingfang|heiti|stheit|gothic|meiryo|malgun|黑體/i.test(cleanName)) {
+        cssFontFamily = `"Microsoft JhengHei", "PingFang TC", "Noto Sans TC", Arial, sans-serif`;
+        wordFont = "Microsoft JhengHei";
+        displayLabel = /pingfang/i.test(cleanName) ? "PingFang TC" : "微軟正黑體";
       } else if (/arial|helvetica|nimbussans|liberationsans/i.test(cleanName)) {
         cssFontFamily = `Arial, Helvetica, "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif`;
         wordFont = "Arial";
@@ -3616,7 +3737,7 @@ G - - - | A - - -
         wordFont = "Roboto";
         displayLabel = "Roboto";
       } else if (/calibri|carlito/i.test(cleanName)) {
-        cssFontFamily = `Calibri, "Segoe UI", Arial, "Microsoft JhengHei", sans-serif`;
+        cssFontFamily = `Calibri, "Segoe UI", "Microsoft JhengHei", Arial, sans-serif`;
         wordFont = "Calibri";
         displayLabel = "Calibri";
       } else if (/segoe/i.test(cleanName)) {
@@ -3635,7 +3756,7 @@ G - - - | A - - -
         displayLabel = "Courier New";
         standardPdfFont = "courier";
         isExactStandard = true;
-      } else if (!isObfuscated && cleanName.length >= 2) {
+      } else if (!isObfuscated && cleanName.length >= 2 && !/[^\x20-\x7E\u4e00-\u9fff]/.test(cleanName)) {
         const baseClean = cleanName
           .replace(/(?:[-_,](?:Bold|Italic|Oblique|Regular|Medium|Light|Semibold|DemiBold|Black|Heavy|Condensed|Narrow|Book|Roman|Thin|MT|PSMT|PS|Std|Pro|W\d+))+$/i, "")
           .replace(/(?:BoldItalic|BoldOblique|Bold|Italic|Regular|PSMT|MT)$/i, "")
@@ -3650,24 +3771,25 @@ G - - - | A - - -
           cssFontFamily = `${quoted.join(", ")}, Consolas, "Courier New", monospace`;
           standardPdfFont = "courier";
         } else {
-          cssFontFamily = `${quoted.join(", ")}, Arial, "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif`;
+          cssFontFamily = `${quoted.join(", ")}, "Microsoft JhengHei", "微軟正黑體", "PingFang TC", "Noto Sans TC", Arial, sans-serif`;
           standardPdfFont = "helvetica";
         }
         wordFont = spaced;
         displayLabel = spaced;
       } else {
+        // Default for obfuscated / CID / hex-encoded CJK PDF fonts: Microsoft JhengHei (微軟正黑體)
         if (generic === "serif") {
-          cssFontFamily = `"Times New Roman", "PMingLiU", "Noto Serif TC", Georgia, serif`;
+          cssFontFamily = `"PMingLiU", "新細明體", "Times New Roman", "Noto Serif TC", Georgia, serif`;
           wordFont = "PMingLiU";
-          displayLabel = "襯線字體 (Serif)";
+          displayLabel = "新細明體 (Serif)";
         } else if (generic === "monospace") {
           cssFontFamily = `Consolas, "Courier New", Menlo, monospace`;
           wordFont = "Consolas";
           displayLabel = "等寬字體 (Mono)";
         } else {
-          cssFontFamily = `Arial, "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif`;
+          cssFontFamily = `"Microsoft JhengHei", "微軟正黑體", "PingFang TC", "Noto Sans TC", Arial, sans-serif`;
           wordFont = "Microsoft JhengHei";
-          displayLabel = "無襯線字體 (Sans)";
+          displayLabel = "微軟正黑體";
         }
       }
 
@@ -3807,17 +3929,9 @@ G - - - | A - - -
 
           // Snap near-pure black/dark text cleanly to prevent faint muddy gray artifacts
           if (fgRgb.r < 28 && fgRgb.g < 28 && fgRgb.b < 28 && colorDistRgb(fgRgb, bgRgb) > 150) {
-            // Keep subtle dark tones if uniform, snap near-black <= 18 to #000000
             if (fgRgb.r <= 18 && fgRgb.g <= 18 && fgRgb.b <= 18) {
               fgRgb = { r: 0, g: 0, b: 0 };
             }
-          }
-
-          // Visual boldness calibration when PDF font name is obfuscated (e.g. F1, CIDFont+F2)
-          if (fontMeta.isObfuscated && !fontMeta.bold && maxDist > 60) {
-            const strongCount = inkCandidates.filter(p => p.d >= maxDist * 0.55).length;
-            const ratio = strongCount / Math.max(1, totalPixels);
-            if (ratio >= 0.29) detectedWeight = 700;
           }
         } else {
           const lum = 0.299 * bgRgb.r + 0.587 * bgRgb.g + 0.114 * bgRgb.b;
@@ -3828,16 +3942,18 @@ G - - - | A - - -
       const hasShading = colorDistRgb(bgRgb, pageBgRgb) > 16;
 
       // Step 3: Calibrate horizontal font metric ratio against actual PDF advance width
+      const effFont = getEffectivePdfFontMeta(fontMeta);
+      detectedWeight = effFont.weight || detectedWeight;
       let metricScaleX = 1.0;
       const cleanOrig = (origText || "").trim();
       if (cleanOrig.length > 0 && (x1Pt - x0Pt) > 1) {
         const mCtx = getPdfMeasureCtx();
-        mCtx.font = buildCanvasFontSpec(fontMeta, fontSizePt, detectedWeight);
+        mCtx.font = buildCanvasFontSpec(effFont, fontSizePt, detectedWeight);
         const measured = mCtx.measureText(cleanOrig).width;
         if (measured > 1) {
           const ratio = (x1Pt - x0Pt) / measured;
           // Only apply gentle proportional width match within realistic glyph variance
-          metricScaleX = Math.max(0.80, Math.min(1.22, ratio));
+          metricScaleX = Math.max(0.84, Math.min(1.18, ratio));
         }
       }
 
@@ -3850,6 +3966,73 @@ G - - - | A - - -
         weight: detectedWeight,
         metricScaleX
       };
+    }
+
+    function snapMaskToInkBounds(baseCtx, scale, x0Pt, x1Pt, topYPt, botYPt, bgRgb, minAllowedXPt, maxAllowedXPt) {
+      // Visually snap mask left/right edges to actual ink columns on baseCanvas so slight
+      // font-metric differences NEVER leave stray glyph slivers (e.g. left curve of 'C')
+      // and NEVER nibble an adjacent barline │ or dash -.
+      const cw = baseCtx.canvas.width;
+      const ch = baseCtx.canvas.height;
+      const y0 = Math.max(0, Math.floor(topYPt * scale));
+      const y1 = Math.min(ch, Math.ceil(botYPt * scale));
+      const bh = y1 - y0;
+      if (bh <= 1) return { maskX0: x0Pt, maskX1: x1Pt, inkLeftX: x0Pt };
+
+      const minPx = Math.max(0, Math.ceil(minAllowedXPt * scale));
+      const maxPx = Math.min(cw - 1, Math.floor(maxAllowedXPt * scale));
+      const maxExpandPx = Math.round(6.5 * scale);
+
+      let lx = Math.max(minPx, Math.floor(x0Pt * scale));
+      let rx = Math.min(maxPx, Math.ceil(x1Pt * scale));
+
+      const scanLeft = Math.max(minPx, lx - maxExpandPx);
+      const scanRight = Math.min(maxPx, rx + maxExpandPx);
+      const scanW = scanRight - scanLeft + 1;
+      if (scanW <= 1) return { maskX0: x0Pt, maskX1: x1Pt, inkLeftX: x0Pt };
+
+      try {
+        const data = baseCtx.getImageData(scanLeft, y0, scanW, bh).data;
+        const colHasInk = (absX) => {
+          const cx = absX - scanLeft;
+          if (cx < 0 || cx >= scanW) return false;
+          for (let py = 0; py < bh; py++) {
+            const idx = (py * scanW + cx) * 4;
+            const d = colorDistRgb({ r: data[idx], g: data[idx + 1], b: data[idx + 2] }, bgRgb);
+            if (d > 30) return true;
+          }
+          return false;
+        };
+
+        // Expand left if initial lx cuts right through an ink glyph
+        if (colHasInk(lx)) {
+          let cur = lx;
+          while (cur > scanLeft && colHasInk(cur - 1)) cur--;
+          lx = cur;
+        }
+        // Expand right if initial rx cuts right through an ink glyph
+        if (colHasInk(rx)) {
+          let cur = rx;
+          while (cur < scanRight && colHasInk(cur + 1)) cur++;
+          rx = cur;
+        }
+
+        // Locate true leftmost ink pixel within [lx .. rx] for exact visual anchor alignment
+        let firstInkPx = lx;
+        for (let px = lx; px <= rx; px++) {
+          if (colHasInk(px)) { firstInkPx = px; break; }
+        }
+
+        const padL = lx > minPx ? 1 : 0;
+        const padR = rx < maxPx ? 1 : 0;
+        return {
+          maskX0: Math.max(minAllowedXPt, (lx - padL) / scale),
+          maskX1: Math.min(maxAllowedXPt, (rx + padR + 1) / scale),
+          inkLeftX: Math.abs(firstInkPx / scale - x0Pt) <= 4.5 ? (firstInkPx / scale) : x0Pt
+        };
+      } catch (_) {
+        return { maskX0: x0Pt, maskX1: x1Pt, inkLeftX: x0Pt };
+      }
     }
 
     function detectShadingPillBounds(baseCtx, scale, x0Pt, x1Pt, midYPt, bgRgb, pageBgRgb) {
@@ -4534,7 +4717,8 @@ G - - - | A - - -
           const availW = Math.max(origKeyW, nextCharX - bounds.x0);
           const { maskTopY, maskBotY } = computeSafeMaskVertical(metaMatch.key, bounds.baselineY, bounds.topY, bounds.botY, bounds.fontSize, line);
 
-          const isRightAlignedTrailingKey = (line.alignment === "right" && !hasTrailingText && newKeyW > origKeyW + 2);
+          const isShortUnshadedRightKey = (!tokStyle.hasShading && !hasTrailingText && label.length <= 3 && (bounds.x0 + newKeyW) <= (pageModel.widthPt - 14));
+          const isRightAlignedTrailingKey = (line.alignment === "right" && !hasTrailingText && newKeyW > origKeyW + 2 && !isShortUnshadedRightKey);
           const needsLineReflow = isRightAlignedTrailingKey || (newKeyW > availW * 1.25);
 
           if (needsLineReflow) {
@@ -4591,23 +4775,36 @@ G - - - | A - - -
               canUseNativeVectorPdf: false
             });
           } else {
+            const effKeyFont = getEffectivePdfFontMeta(bounds.fontMeta);
             const fitScaleX = newKeyW > availW ? (availW / newKeyW) * tokStyle.metricScaleX : tokStyle.metricScaleX;
             const actualDrawW = mCtx.measureText(label).width * fitScaleX;
-            const padL = Math.min(1.2, Math.max(0.4, bounds.x0 - line.colMinX));
-            const padR = Math.min(1.2, Math.max(0.4, (nextCharX - bounds.x1) * 0.4));
+            let prevMetaX = line.colMinX + 4;
+            for (let ci = metaMatch.start - 1; ci >= 0; ci--) {
+              if (!line.charMeta[ci].isSyntheticSpace && line.charMeta[ci].ch.trim()) {
+                prevMetaX = line.charMeta[ci].x1;
+                break;
+              }
+            }
+            const snapped = snapMaskToInkBounds(
+              pageModel.baseCtx, pageModel.baseScale,
+              bounds.x0, bounds.x1, maskTopY, maskBotY,
+              tokStyle.bgRgb,
+              Math.min(bounds.x0, prevMetaX + 0.4),
+              Math.max(bounds.x1, nextCharX)
+            );
             patches.push({
               kind: "metadata",
               origText: metaMatch.key,
               newText: label,
-              maskX0: bounds.x0 - padL,
-              maskX1: bounds.x1 + padR,
+              maskX0: snapped.maskX0,
+              maskX1: snapped.maskX1,
               maskTopY,
               maskBotY,
               eraseBgHex: tokStyle.bgHex,
               eraseBgRgb: tokStyle.bgRgb,
               pillFillHex: null,
               pillFillRgb: null,
-              drawX: bounds.x0,
+              drawX: snapped.inkLeftX,
               drawW: actualDrawW,
               baselineY: bounds.baselineY,
               fontSize: bounds.fontSize,
@@ -4616,7 +4813,7 @@ G - - - | A - - -
               fgHex: tokStyle.fgHex,
               fgRgb: tokStyle.fgRgb,
               scaleX: fitScaleX,
-              canUseNativeVectorPdf: isPureWinAnsi(label) && bounds.fontMeta.isExactStandard && Math.abs(fitScaleX - 1) < 0.06
+              canUseNativeVectorPdf: isPureWinAnsi(label) && effKeyFont.isExactStandard && Math.abs(fitScaleX - 1) < 0.06
             });
           }
           continue;
@@ -4790,25 +4987,31 @@ G - - - | A - - -
               break;
             }
 
+            const effTokFont = getEffectivePdfFontMeta(b.fontMeta);
             const fitScaleX = natW > availW ? (availW / natW) * st.metricScaleX : st.metricScaleX;
             const actualDrawW = mCtx.measureText(newTok).width * fitScaleX;
-            const padL = Math.min(0.9, Math.max(0, (b.x0 - prevRightX) * 0.28));
-            const padR = Math.min(0.9, Math.max(0, (nextLeftX - b.x1) * 0.28));
             const vMask = computeSafeMaskVertical(oldTok, b.baselineY, b.topY, b.botY, b.fontSize, line);
+            const minSafeL = Math.min(b.x0, prevRightX + 0.5);
+            const maxSafeR = Math.max(b.x1, nextLeftX - 0.5);
+            const snapped = snapMaskToInkBounds(
+              pageModel.baseCtx, pageModel.baseScale,
+              b.x0, b.x1, vMask.maskTopY, vMask.maskBotY,
+              st.bgRgb, minSafeL, maxSafeR
+            );
 
             tokenPatches.push({
               kind: "chord",
               origText: oldTok,
               newText: newTok,
-              maskX0: b.x0 - padL,
-              maskX1: b.x1 + padR,
+              maskX0: snapped.maskX0,
+              maskX1: snapped.maskX1,
               maskTopY: vMask.maskTopY,
               maskBotY: vMask.maskBotY,
               eraseBgHex: st.bgHex,
               eraseBgRgb: st.bgRgb,
               pillFillHex: null,
               pillFillRgb: null,
-              drawX: b.x0,
+              drawX: snapped.inkLeftX,
               drawW: actualDrawW,
               baselineY: b.baselineY,
               fontSize: b.fontSize,
@@ -4817,7 +5020,7 @@ G - - - | A - - -
               fgHex: st.fgHex,
               fgRgb: st.fgRgb,
               scaleX: fitScaleX,
-              canUseNativeVectorPdf: isPureWinAnsi(newTok) && b.fontMeta.isExactStandard && Math.abs(fitScaleX - 1) < 0.06
+              canUseNativeVectorPdf: isPureWinAnsi(newTok) && effTokFont.isExactStandard && Math.abs(fitScaleX - 1) < 0.06
             });
           }
 
@@ -4843,18 +5046,23 @@ G - - - | A - - -
             mCtx.font = buildCanvasFontSpec(chordStartBounds.fontMeta, segBounds.fontSize, segStyle.weight);
             const natW = mCtx.measureText(newBarText).width * segStyle.metricScaleX;
 
-            const safeLeftX = Math.max(leftBarRightX + 0.8, segBounds.x0);
-            const maxBarW = Math.max(segBounds.x1 - safeLeftX, rightBarLeftX - safeLeftX - 1.5);
+            const snappedBar = snapMaskToInkBounds(
+              pageModel.baseCtx, pageModel.baseScale,
+              segBounds.x0, segBounds.x1, vMask.maskTopY, vMask.maskBotY,
+              segStyle.bgRgb,
+              Math.min(segBounds.x0, leftBarRightX + 0.6),
+              Math.max(segBounds.x1, rightBarLeftX - 0.6)
+            );
+            const safeLeftX = Math.max(leftBarRightX + 0.8, snappedBar.inkLeftX);
+            const maxBarW = Math.max(snappedBar.maskX1 - safeLeftX, rightBarLeftX - safeLeftX - 1.5);
             const fitScaleX = natW > maxBarW ? (maxBarW / natW) * segStyle.metricScaleX : segStyle.metricScaleX;
-            const maskL = Math.max(leftBarRightX + 0.4, segBounds.x0 - 0.6);
-            const maskR = Math.min(rightBarLeftX - 0.4, segBounds.x1 + 0.8);
 
             patches.push({
               kind: "chord-line",
               origText: rawBarSlice,
               newText: newBarText,
-              maskX0: maskL,
-              maskX1: Math.max(maskL + 1, maskR),
+              maskX0: snappedBar.maskX0,
+              maskX1: Math.max(snappedBar.maskX0 + 1, snappedBar.maskX1),
               maskTopY: vMask.maskTopY,
               maskBotY: vMask.maskBotY,
               eraseBgHex: segStyle.bgHex,
@@ -5121,7 +5329,7 @@ G - - - | A - - -
                 });
 
                 if (patch.canUseNativeVectorPdf && !patch.pillFillHex) {
-                  const font = await getStdFont(patch.fontMeta, patch.weight);
+                  const font = await getStdFont(getEffectivePdfFontMeta(patch.fontMeta), patch.weight);
                   const fg = patch.fgRgb || { r: 0, g: 0, b: 0 };
                   const [tx, ty] = pageModel.viewport1x.convertToPdfPoint(patch.drawX, patch.baselineY);
                   pdfPage.drawText(patch.newText, {
@@ -5209,10 +5417,11 @@ G - - - | A - - -
       const buildLearnedParaXml = (line, opts = {}) => {
         const transposed = transposeSingleLine(line.text, state.srcKey, targetKey, state.accPref, targetMode, capoArg);
         const st = line.visualStyle || { fgHex: "#000000", bgHex: "#ffffff", hasShading: false, weight: 400 };
-        const fontName = escapeXml(line.primaryFont.wordFont || "Microsoft JhengHei");
+        const effFont = getEffectivePdfFontMeta(line.primaryFont);
+        const fontName = escapeXml(effFont.wordFont || "Microsoft JhengHei");
         const szVal = Math.max(14, Math.min(96, Math.round(line.fontSize * 2)));
-        const isBold = (st.weight || 400) >= 600;
-        const isItalic = Boolean(line.primaryFont.italic);
+        const isBold = ((effFont.weight || st.weight || 400) >= 600);
+        const isItalic = Boolean(effFont.italic);
         const fgClean = (st.fgHex || "#000000").replace(/^#/, "");
         const bgClean = st.hasShading ? (st.bgHex || "").replace(/^#/, "") : "";
 
@@ -5325,6 +5534,7 @@ G - - - | A - - -
       pdfBytes: null,
       pdfModel: null,
       pdfHighlightChords: false,
+      pdfFontOverride: "auto",
       textModifiedManually: false,
       rawText: "",
       srcKey: "C",
@@ -5959,6 +6169,9 @@ G - - - | A - - -
           state.sourceType = "pdf";
           state.pdfBytes = pdfBytes;
           state.pdfModel = pdfModel;
+          state.pdfFontOverride = "auto";
+          const selFontEl = document.getElementById("pdfFontOverrideSelect");
+          if (selFontEl) selFontEl.value = "auto";
           state.docxBytes = null;
           state.docxXmlString = DEFAULT_MINIMAL_DOCUMENT_XML;
           state.docxModel = null;
@@ -6128,6 +6341,14 @@ G - - - | A - - -
     if (btnTogglePdfTint) {
       btnTogglePdfTint.addEventListener("click", () => {
         state.pdfHighlightChords = !state.pdfHighlightChords;
+        renderSheetPreview();
+      });
+    }
+
+    const selPdfFontOverride = document.getElementById("pdfFontOverrideSelect");
+    if (selPdfFontOverride) {
+      selPdfFontOverride.addEventListener("change", () => {
+        state.pdfFontOverride = selPdfFontOverride.value || "auto";
         renderSheetPreview();
       });
     }
